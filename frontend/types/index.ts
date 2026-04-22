@@ -27,6 +27,11 @@ export interface Paciente {
   documento?: string;
   telefono_contacto?: string;
   observaciones?: string;
+  grupo_sanguineo?: string;
+  alergias?: string;
+  enfermedades_cronicas?: string;
+  medicacion_habitual?: string;
+  antecedentes_quirurgicos?: string;
   created_at: string;
 }
 

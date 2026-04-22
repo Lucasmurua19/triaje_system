@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import type { Triaje, SepsisResumen } from "@/types";
+import type { Triaje, SepsisResumen, Paciente } from "@/types";
 import NivelBadge from "@/components/NivelBadge";
 import SepsisAlert from "@/components/SepsisAlert";
 import Sidebar from "@/components/Sidebar";
@@ -21,6 +21,7 @@ export default function TriajeDetallePage() {
   const { id } = useParams<{ id: string }>();
   const [triaje, setTriaje] = useState<Triaje | null>(null);
   const [sepsis, setSepsis] = useState<SepsisResumen | null>(null);
+  const [paciente, setPaciente] = useState<Paciente | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -28,9 +29,11 @@ export default function TriajeDetallePage() {
       api.get<Triaje>(`/triaje/${id}`),
       api.get<SepsisResumen>(`/triaje/${id}/sepsis`),
     ])
-      .then(([t, s]) => {
+      .then(async ([t, s]) => {
         setTriaje(t);
         setSepsis(s);
+        const p = await api.get<Paciente>(`/pacientes/${t.paciente_id}`).catch(() => null);
+        setPaciente(p);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -157,6 +160,47 @@ export default function TriajeDetallePage() {
               </div>
             </div>
           </div>
+
+          {/* Antecedentes del paciente */}
+          {paciente && (paciente.alergias || paciente.enfermedades_cronicas || paciente.medicacion_habitual || paciente.antecedentes_quirurgicos || paciente.grupo_sanguineo) && (
+            <div className="card">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-gray-800">Antecedentes del paciente</h2>
+                <Link href={`/pacientes/${paciente.id}`} className="text-xs text-blue-600 hover:underline">
+                  Editar →
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-x-8">
+                {paciente.grupo_sanguineo && (
+                  <InfoRow label="Grupo sanguíneo" value={paciente.grupo_sanguineo} />
+                )}
+                {paciente.alergias && (
+                  <div className="col-span-2 flex justify-between py-2 border-b border-gray-50">
+                    <span className="text-sm text-red-500 font-medium">Alergias</span>
+                    <span className="text-sm font-medium text-red-700 text-right max-w-xs">{paciente.alergias}</span>
+                  </div>
+                )}
+                {paciente.enfermedades_cronicas && (
+                  <div className="col-span-2 flex justify-between py-2 border-b border-gray-50">
+                    <span className="text-sm text-gray-500">Enf. crónicas</span>
+                    <span className="text-sm font-medium text-gray-800 text-right max-w-xs">{paciente.enfermedades_cronicas}</span>
+                  </div>
+                )}
+                {paciente.medicacion_habitual && (
+                  <div className="col-span-2 flex justify-between py-2 border-b border-gray-50">
+                    <span className="text-sm text-gray-500">Medicación habitual</span>
+                    <span className="text-sm font-medium text-gray-800 text-right max-w-xs">{paciente.medicacion_habitual}</span>
+                  </div>
+                )}
+                {paciente.antecedentes_quirurgicos && (
+                  <div className="col-span-2 flex justify-between py-2">
+                    <span className="text-sm text-gray-500">Antec. quirúrgicos</span>
+                    <span className="text-sm font-medium text-gray-800 text-right max-w-xs">{paciente.antecedentes_quirurgicos}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-3">
             <Link href="/dashboard" className="btn-secondary">
