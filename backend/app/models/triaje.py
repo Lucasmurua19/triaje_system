@@ -24,6 +24,20 @@ class NivelConciencia(str, enum.Enum):
     inconsciente = "inconsciente"
 
 
+class EscalaDolor(str, enum.Enum):
+    nips = "nips"           # neonatos < 1 mes (0-7)
+    flacc = "flacc"         # 1 mes - 3 años (0-10)
+    wong_baker = "wong_baker"  # 3-7 años (0-10, caras)
+    numerica = "numerica"   # > 7 años (0-10)
+
+
+class EstadoHidratacion(str, enum.Enum):
+    normohidratado = "normohidratado"
+    deshidratacion_leve = "deshidratacion_leve"
+    deshidratacion_moderada = "deshidratacion_moderada"
+    no_aplica = "no_aplica"
+
+
 class Triaje(Base):
     __tablename__ = "triajes"
 
@@ -35,6 +49,8 @@ class Triaje(Base):
     tiempo_espera_minutos = Column(Integer, nullable=True)
     fecha = Column(DateTime(timezone=True), server_default=func.now())
     completado = Column(Boolean, default=False)
+    es_fast_track = Column(Boolean, default=False)
+    estado_hidratacion = Column(SAEnum(EstadoHidratacion), nullable=True)
 
     paciente = relationship("Paciente", back_populates="triajes")
     usuario = relationship("User")
@@ -60,6 +76,8 @@ class SignosVitales(Base):
     glasgow = Column(Integer, nullable=True)                   # 3-15
     peso_kg = Column(Float, nullable=True)
     llene_capilar_segundos = Column(Float, nullable=True)
+    escala_dolor = Column(SAEnum(EscalaDolor), nullable=True)
+    score_dolor = Column(Integer, nullable=True)               # 0-10 (NIPS: 0-7)
 
     triaje = relationship("Triaje", back_populates="signos_vitales")
 

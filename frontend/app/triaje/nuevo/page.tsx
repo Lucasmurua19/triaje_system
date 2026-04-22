@@ -6,15 +6,10 @@ import type { Paciente, EvaluacionTEP, SignosVitales, FactoresRiesgo, Triaje } f
 import StepPaciente from "@/components/triaje-wizard/StepPaciente";
 import StepMotivoTEP from "@/components/triaje-wizard/StepMotivoTEP";
 import StepSignosVitales from "@/components/triaje-wizard/StepSignosVitales";
-import StepFactoresRiesgo from "@/components/triaje-wizard/StepFactoresRiesgo";
+import StepFactoresRiesgo, { type StepFactoresRiesgoData } from "@/components/triaje-wizard/StepFactoresRiesgo";
 import Sidebar from "@/components/Sidebar";
 
-const PASOS = [
-  "Paciente",
-  "Motivo y TEP",
-  "Signos Vitales",
-  "Factores de Riesgo",
-];
+const PASOS = ["Paciente", "Motivo y TEP", "Signos Vitales", "Factores de Riesgo"];
 
 export default function NuevoTriajePage() {
   const router = useRouter();
@@ -27,7 +22,7 @@ export default function NuevoTriajePage() {
   const [tep, setTep] = useState<EvaluacionTEP | null>(null);
   const [sv, setSv] = useState<SignosVitales | null>(null);
 
-  async function finalizar(fr: FactoresRiesgo) {
+  async function finalizar(data: StepFactoresRiesgoData) {
     if (!paciente || !tep || !sv) return;
     setError("");
     setLoading(true);
@@ -37,7 +32,9 @@ export default function NuevoTriajePage() {
         motivo_consulta: motivo,
         signos_vitales: sv,
         evaluacion_tep: tep,
-        factores_riesgo: fr,
+        factores_riesgo: data.factores_riesgo,
+        es_fast_track: data.es_fast_track,
+        estado_hidratacion: data.estado_hidratacion,
       });
       router.push(`/triaje/${result.id}`);
     } catch (e: unknown) {
@@ -58,7 +55,6 @@ export default function NuevoTriajePage() {
       <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-2xl mx-auto">
-          {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-gray-900">Nuevo Triaje</h1>
             <p className="text-gray-500 text-sm mt-1">Complete los 4 pasos para clasificar al paciente</p>
@@ -101,13 +97,13 @@ export default function NuevoTriajePage() {
                 <p className="text-sm text-blue-600">
                   {calcularEdad(paciente.fecha_nacimiento)} · {paciente.sexo}
                   {paciente.documento ? ` · Doc: ${paciente.documento}` : ""}
+                  {paciente.alergias && (
+                    <span className="ml-2 text-red-500 font-medium">⚠ {paciente.alergias}</span>
+                  )}
                 </p>
               </div>
               {paso === 0 && (
-                <button
-                  onClick={() => setPaciente(null)}
-                  className="text-blue-400 hover:text-blue-700 text-sm"
-                >
+                <button onClick={() => setPaciente(null)} className="text-blue-400 hover:text-blue-700 text-sm">
                   Cambiar
                 </button>
               )}
@@ -117,28 +113,17 @@ export default function NuevoTriajePage() {
           {/* Card del paso actual */}
           <div className="card">
             {paso === 0 && (
-              <StepPaciente
-                onSelect={(p) => {
-                  setPaciente(p);
-                  setPaso(1);
-                }}
-              />
+              <StepPaciente onSelect={(p) => { setPaciente(p); setPaso(1); }} />
             )}
             {paso === 1 && (
               <StepMotivoTEP
-                onNext={({ motivo: m, tep: t }) => {
-                  setMotivo(m);
-                  setTep(t);
-                  setPaso(2);
-                }}
+                onNext={({ motivo: m, tep: t }) => { setMotivo(m); setTep(t); setPaso(2); }}
               />
             )}
-            {paso === 2 && (
+            {paso === 2 && paciente && (
               <StepSignosVitales
-                onNext={(data) => {
-                  setSv(data);
-                  setPaso(3);
-                }}
+                paciente={paciente}
+                onNext={(data) => { setSv(data); setPaso(3); }}
                 onBack={() => setPaso(1)}
               />
             )}

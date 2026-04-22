@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional
-from app.models.triaje import NivelTriaje, NivelConciencia
+from app.models.triaje import NivelTriaje, NivelConciencia, EscalaDolor, EstadoHidratacion
 
 
 class SignosVitalesCreate(BaseModel):
@@ -15,6 +15,8 @@ class SignosVitalesCreate(BaseModel):
     glasgow: Optional[int] = Field(None, ge=3, le=15)
     peso_kg: Optional[float] = None
     llene_capilar_segundos: Optional[float] = None
+    escala_dolor: Optional[EscalaDolor] = None
+    score_dolor: Optional[int] = Field(None, ge=0, le=10)
 
 
 class SignosVitalesOut(SignosVitalesCreate):
@@ -71,6 +73,8 @@ class TriajeCompleto(BaseModel):
     signos_vitales: SignosVitalesCreate
     evaluacion_tep: EvaluacionTEPCreate
     factores_riesgo: FactoresRiesgoCreate
+    es_fast_track: bool = False
+    estado_hidratacion: Optional[EstadoHidratacion] = None
 
 
 class TriajeOut(BaseModel):
@@ -82,6 +86,8 @@ class TriajeOut(BaseModel):
     tiempo_espera_minutos: Optional[int]
     fecha: datetime
     completado: bool
+    es_fast_track: bool
+    estado_hidratacion: Optional[EstadoHidratacion]
     signos_vitales: Optional[SignosVitalesOut]
     evaluacion_tep: Optional[EvaluacionTEPOut]
     factores_riesgo: Optional[FactoresRiesgoOut]
