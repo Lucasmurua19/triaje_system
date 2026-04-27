@@ -3,8 +3,6 @@ export type Sexo = "masculino" | "femenino";
 export type NivelConciencia = "alerta" | "voz" | "dolor" | "inconsciente";
 export type NivelTriaje = 1 | 2 | 3 | 4 | 5;
 export type NivelSepsis = "sin_sepsis" | "sospecha" | "sepsis_grave" | "shock_septico";
-export type EscalaDolor = "nips" | "flacc" | "wong_baker" | "numerica";
-export type EstadoHidratacion = "normohidratado" | "deshidratacion_leve" | "deshidratacion_moderada" | "no_aplica";
 
 export interface User {
   id: number;
@@ -48,8 +46,6 @@ export interface SignosVitales {
   glasgow?: number;
   peso_kg?: number;
   llene_capilar_segundos?: number;
-  escala_dolor?: EscalaDolor;
-  score_dolor?: number;
 }
 
 export interface EvaluacionTEP {
@@ -79,8 +75,6 @@ export interface Triaje {
   tiempo_espera_minutos?: number;
   fecha: string;
   completado: boolean;
-  es_fast_track: boolean;
-  estado_hidratacion?: EstadoHidratacion;
   signos_vitales?: SignosVitales & { id: number; triaje_id: number };
   evaluacion_tep?: EvaluacionTEP & { id: number; triaje_id: number };
   factores_riesgo?: FactoresRiesgo & { id: number; triaje_id: number };

@@ -33,8 +33,6 @@ def crear_triaje_completo(
         paciente_id=body.paciente_id,
         usuario_id=current_user.id,
         motivo_consulta=body.motivo_consulta,
-        es_fast_track=body.es_fast_track,
-        estado_hidratacion=body.estado_hidratacion,
     )
     db.add(triaje)
     db.flush()  # obtener triaje.id sin commit
