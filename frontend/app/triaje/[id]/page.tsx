@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import type { Triaje, SepsisResumen, Paciente } from "@/types";
 import NivelBadge from "@/components/NivelBadge";
 import SepsisAlert from "@/components/SepsisAlert";
+import AccionesTriaje from "@/components/AccionesTriaje";
 import Sidebar from "@/components/Sidebar";
 
 function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
@@ -201,6 +202,9 @@ export default function TriajeDetallePage() {
               </div>
             </div>
           )}
+
+          {/* Acciones de enfermería */}
+          <AccionesTriaje triajeId={triaje.id} acciones={triaje.acciones ?? []} />
 
           <div className="flex gap-3">
             <Link href="/dashboard" className="btn-secondary">

@@ -24,6 +24,16 @@ class NivelConciencia(str, enum.Enum):
     inconsciente = "inconsciente"
 
 
+class TipoAccion(str, enum.Enum):
+    analgesico = "analgesico"
+    antipiretico = "antipiretico"
+    sro = "sro"
+    oxigeno = "oxigeno"
+    inmovilizacion = "inmovilizacion"
+    limpieza_herida = "limpieza_herida"
+    otro = "otro"
+
+
 class Triaje(Base):
     __tablename__ = "triajes"
 
@@ -42,6 +52,7 @@ class Triaje(Base):
     evaluacion_tep = relationship("EvaluacionTEP", back_populates="triaje", uselist=False)
     factores_riesgo = relationship("FactoresRiesgo", back_populates="triaje", uselist=False)
     evaluacion_sepsis = relationship("EvaluacionSepsis", back_populates="triaje", uselist=False)
+    acciones = relationship("AccionTriaje", back_populates="triaje", order_by="AccionTriaje.hora_administracion")
 
 
 class SignosVitales(Base):
@@ -100,3 +111,19 @@ class FactoresRiesgo(Base):
     sospecha_infeccion = Column(Boolean, default=False)  # usado en criterios SIRS
 
     triaje = relationship("Triaje", back_populates="factores_riesgo")
+
+
+class AccionTriaje(Base):
+    __tablename__ = "acciones_triaje"
+
+    id = Column(Integer, primary_key=True, index=True)
+    triaje_id = Column(Integer, ForeignKey("triajes.id"), nullable=False)
+    usuario_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tipo_accion = Column(SAEnum(TipoAccion), nullable=False)
+    detalle = Column(Text, nullable=True)
+    dosis = Column(String(100), nullable=True)
+    hora_administracion = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    triaje = relationship("Triaje", back_populates="acciones")
+    usuario = relationship("User")

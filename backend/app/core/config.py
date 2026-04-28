@@ -11,6 +11,10 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480  # 8 horas turno clinico
 
+    ADMIN_EMAIL: str = "admin@hospital.com"
+    ADMIN_PASSWORD: str = "admin123"
+    ADMIN_NOMBRE: str = "Administrador"
+
     class Config:
         env_file = ".env"
 

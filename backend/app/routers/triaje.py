@@ -3,12 +3,13 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.dependencies import get_current_user, require_roles
+from app.models.user import RolUsuario
 from app.models.paciente import Paciente
-from app.models.triaje import Triaje, SignosVitales, EvaluacionTEP, FactoresRiesgo
+from app.models.triaje import Triaje, SignosVitales, EvaluacionTEP, FactoresRiesgo, AccionTriaje
 from app.models.sepsis import EvaluacionSepsis, NivelSepsis
 from app.models.user import User
-from app.schemas.triaje import TriajeCompleto, TriajeOut
+from app.schemas.triaje import TriajeCompleto, TriajeOut, AccionTriajeCreate, AccionTriajeOut
 from app.schemas.sepsis import SepsisResumen
 from app.services.triaje_service import clasificar_triaje
 from app.services.sepsis_service import evaluar_sirs, calcular_edad_meses
@@ -22,7 +23,7 @@ router = APIRouter(prefix="/triaje", tags=["Triaje"])
 def crear_triaje_completo(
     body: TriajeCompleto,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(require_roles(RolUsuario.enfermera, RolUsuario.admin)),
 ):
     paciente = db.query(Paciente).filter(Paciente.id == body.paciente_id).first()
     if not paciente:
@@ -150,3 +151,52 @@ def obtener_resumen_sepsis(
         recomendaciones=recomendaciones,
         color_alerta=color_map.get(sep.nivel, "verde"),
     )
+
+
+@router.post("/{triaje_id}/acciones/", response_model=AccionTriajeOut, status_code=status.HTTP_201_CREATED)
+def agregar_accion(
+    triaje_id: int,
+    body: AccionTriajeCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RolUsuario.enfermera, RolUsuario.admin)),
+):
+    triaje = db.query(Triaje).filter(Triaje.id == triaje_id).first()
+    if not triaje:
+        raise HTTPException(status_code=404, detail="Triaje no encontrado")
+    accion = AccionTriaje(triaje_id=triaje_id, usuario_id=current_user.id, **body.model_dump())
+    db.add(accion)
+    db.commit()
+    db.refresh(accion)
+    return accion
+
+
+@router.get("/{triaje_id}/acciones/", response_model=List[AccionTriajeOut])
+def listar_acciones(
+    triaje_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    return (
+        db.query(AccionTriaje)
+        .filter(AccionTriaje.triaje_id == triaje_id)
+        .order_by(AccionTriaje.hora_administracion)
+        .all()
+    )
+
+
+@router.delete("/{triaje_id}/acciones/{accion_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_accion(
+    triaje_id: int,
+    accion_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RolUsuario.enfermera, RolUsuario.admin)),
+):
+    accion = (
+        db.query(AccionTriaje)
+        .filter(AccionTriaje.id == accion_id, AccionTriaje.triaje_id == triaje_id)
+        .first()
+    )
+    if not accion:
+        raise HTTPException(status_code=404, detail="Acción no encontrada")
+    db.delete(accion)
+    db.commit()

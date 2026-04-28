@@ -1,4 +1,12 @@
 export type Rol = "medico" | "enfermera" | "admin";
+export type TipoAccion =
+  | "analgesico"
+  | "antipiretico"
+  | "sro"
+  | "oxigeno"
+  | "inmovilizacion"
+  | "limpieza_herida"
+  | "otro";
 export type Sexo = "masculino" | "femenino";
 export type NivelConciencia = "alerta" | "voz" | "dolor" | "inconsciente";
 export type NivelTriaje = 1 | 2 | 3 | 4 | 5;
@@ -66,6 +74,17 @@ export interface FactoresRiesgo {
   sospecha_infeccion: boolean;
 }
 
+export interface AccionTriaje {
+  id: number;
+  triaje_id: number;
+  usuario_id: number;
+  tipo_accion: TipoAccion;
+  detalle?: string;
+  dosis?: string;
+  hora_administracion?: string;
+  created_at: string;
+}
+
 export interface Triaje {
   id: number;
   paciente_id: number;
@@ -78,6 +97,7 @@ export interface Triaje {
   signos_vitales?: SignosVitales & { id: number; triaje_id: number };
   evaluacion_tep?: EvaluacionTEP & { id: number; triaje_id: number };
   factores_riesgo?: FactoresRiesgo & { id: number; triaje_id: number };
+  acciones: AccionTriaje[];
 }
 
 export interface SepsisResumen {
