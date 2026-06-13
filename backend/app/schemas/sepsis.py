@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional, List
-from app.models.sepsis import NivelSepsis
+from app.models.sepsis import NivelSepsis, ClasificacionShock
 
 
 class SepsisOut(BaseModel):
@@ -24,6 +24,19 @@ class SepsisOut(BaseModel):
         from_attributes = True
 
 
+class SepsisBasico(BaseModel):
+    nivel: NivelSepsis
+    activado: bool
+    clasificacion_shock: Optional[ClasificacionShock] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ClasificacionUpdate(BaseModel):
+    clasificacion_shock: ClasificacionShock
+
+
 class SepsisResumen(BaseModel):
     nivel: NivelSepsis
     activado: bool
@@ -31,3 +44,4 @@ class SepsisResumen(BaseModel):
     criterios_positivos: List[str]
     recomendaciones: List[str]
     color_alerta: str  # "verde", "amarillo", "rojo"
+    clasificacion_shock: Optional[ClasificacionShock] = None

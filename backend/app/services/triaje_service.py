@@ -76,7 +76,8 @@ def _es_nivel_1(sv: SignosVitales, tep: EvaluacionTEP, ta_min: int) -> bool:
 
 
 def _es_nivel_2(sv: SignosVitales, tep: EvaluacionTEP, fc_max: int, fr_max: int, ta_min: int) -> bool:
-    if sv.nivel_conciencia in (NivelConciencia.dolor, NivelConciencia.voz):
+    if sv.nivel_conciencia in (NivelConciencia.dolor, NivelConciencia.voz,
+                                NivelConciencia.confuso, NivelConciencia.irritable):
         return True
     if sv.glasgow is not None and 9 <= sv.glasgow <= 13:
         return True
@@ -133,15 +134,25 @@ def _es_nivel_4(sv: SignosVitales) -> bool:
 
 def _aplicar_factores_modificadores(nivel: NivelTriaje, fr: FactoresRiesgo) -> NivelTriaje:
     """Sube el nivel de triaje (hacia emergencia) si hay factores de riesgo."""
-    subir = False
 
+    # Convulsión activa: fuerza mínimo nivel 2 sin importar los demás factores
+    if fr.convulsion_activa and nivel.value > NivelTriaje.muy_urgente.value:
+        return NivelTriaje.muy_urgente
+
+    subir = False
     if fr.edad_menor_3_meses:
         subir = True
     if fr.inmunosupresion:
         subir = True
+    if fr.oncologico:
+        subir = True
+    if fr.cardiopatia_congenita:
+        subir = True
     if fr.dolor_severo:
         subir = True
     if fr.reconsulta_72h and nivel.value >= NivelTriaje.urgente.value:
+        subir = True
+    if fr.traslado_otro_centro and nivel.value >= NivelTriaje.urgente.value:
         subir = True
 
     if subir and nivel.value > NivelTriaje.emergencia.value:

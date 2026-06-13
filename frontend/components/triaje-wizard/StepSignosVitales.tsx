@@ -98,10 +98,12 @@ export default function StepSignosVitales({ onNext, onBack }: Props) {
           <label className="label">Nivel de conciencia</label>
           <select className="input" {...register("nivel_conciencia")}>
             <option value="">Seleccionar...</option>
-            <option value="alerta">Alerta</option>
-            <option value="voz">Responde a voz</option>
-            <option value="dolor">Responde a dolor</option>
-            <option value="inconsciente">Inconsciente</option>
+            <option value="alerta">Alerta — orientado, interactúa</option>
+            <option value="irritable">Irritable — llanto inconsolable (lactante)</option>
+            <option value="confuso">Confuso — desorientado pero responde</option>
+            <option value="voz">Responde a voz solamente</option>
+            <option value="dolor">Responde solo a dolor</option>
+            <option value="inconsciente">Inconsciente — sin respuesta</option>
           </select>
         </div>
         <div>

@@ -19,6 +19,8 @@ class NivelTriaje(int, enum.Enum):
 
 class NivelConciencia(str, enum.Enum):
     alerta = "alerta"
+    irritable = "irritable"       # lactantes: llanto inconsolable / irritabilidad anormal
+    confuso = "confuso"           # escolar/adolescente: desorientado pero responde
     voz = "voz"
     dolor = "dolor"
     inconsciente = "inconsciente"
@@ -67,7 +69,7 @@ class SignosVitales(Base):
     saturacion_o2 = Column(Integer, nullable=True)             # %
     tension_arterial_sistolica = Column(Integer, nullable=True)
     tension_arterial_diastolica = Column(Integer, nullable=True)
-    nivel_conciencia = Column(SAEnum(NivelConciencia), nullable=True)
+    nivel_conciencia = Column(String(50), nullable=True)   # String evita migrations al agregar opciones
     glasgow = Column(Integer, nullable=True)                   # 3-15
     peso_kg = Column(Float, nullable=True)
     llene_capilar_segundos = Column(Float, nullable=True)
@@ -108,7 +110,11 @@ class FactoresRiesgo(Base):
     enfermedad_cronica = Column(Boolean, default=False)
     reconsulta_72h = Column(Boolean, default=False)
     dolor_severo = Column(Boolean, default=False)
-    sospecha_infeccion = Column(Boolean, default=False)  # usado en criterios SIRS
+    sospecha_infeccion = Column(Boolean, default=False)   # usado en criterios SIRS
+    cardiopatia_congenita = Column(Boolean, default=False)
+    oncologico = Column(Boolean, default=False)           # quimioterapia / enfermedad oncológica activa
+    convulsion_activa = Column(Boolean, default=False)    # fuerza mínimo nivel 2
+    traslado_otro_centro = Column(Boolean, default=False)
 
     triaje = relationship("Triaje", back_populates="factores_riesgo")
 

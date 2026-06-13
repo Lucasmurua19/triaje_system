@@ -10,7 +10,8 @@ from app.models.triaje import Triaje, SignosVitales, EvaluacionTEP, FactoresRies
 from app.models.sepsis import EvaluacionSepsis, NivelSepsis
 from app.models.user import User
 from app.schemas.triaje import TriajeCompleto, TriajeOut, AccionTriajeCreate, AccionTriajeOut
-from app.schemas.sepsis import SepsisResumen
+from app.schemas.sepsis import SepsisResumen, ClasificacionUpdate
+from app.models.sepsis import ClasificacionShock
 from app.services.triaje_service import clasificar_triaje
 from app.services.sepsis_service import evaluar_sirs, calcular_edad_meses
 from datetime import datetime, timezone
@@ -150,7 +151,23 @@ def obtener_resumen_sepsis(
         criterios_positivos=criterios_positivos,
         recomendaciones=recomendaciones,
         color_alerta=color_map.get(sep.nivel, "verde"),
+        clasificacion_shock=sep.clasificacion_shock,
     )
+
+
+@router.patch("/{triaje_id}/sepsis/clasificacion")
+def clasificar_shock(
+    triaje_id: int,
+    body: ClasificacionUpdate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RolUsuario.medico, RolUsuario.enfermera, RolUsuario.admin)),
+):
+    sepsis = db.query(EvaluacionSepsis).filter(EvaluacionSepsis.triaje_id == triaje_id).first()
+    if not sepsis:
+        raise HTTPException(status_code=404, detail="Evaluación de sepsis no encontrada")
+    sepsis.clasificacion_shock = body.clasificacion_shock
+    db.commit()
+    return {"clasificacion_shock": sepsis.clasificacion_shock}
 
 
 @router.post("/{triaje_id}/acciones/", response_model=AccionTriajeOut, status_code=status.HTTP_201_CREATED)
