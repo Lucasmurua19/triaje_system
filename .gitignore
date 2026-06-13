@@ -5,3 +5,6 @@ __pycache__/
 # Node / Next.js
 node_modules/
 frontend/.next/
+
+# Variables de entorno (usar .env.example como plantilla)
+.env
