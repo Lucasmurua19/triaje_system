@@ -1,286 +1,148 @@
-# 🏥 Pediatric Triage & Sepsis Code System
-### Sistema de Triaje Pediátrico Inteligente con Activación de Código Sepsis
+# 🏥 Sistema de Triaje Pediátrico con Código Sepsis
+
+### MVP funcional — Triaje estructurado de 5 niveles + detección automática de sepsis (IPSCC)
 
 ---
 
 ## 📌 Descripción
 
-Este proyecto implementa un **sistema de triaje pediátrico estructurado**, con un módulo crítico de **detección temprana y activación de Código Sepsis**, orientado a servicios de emergencia hospitalarios.
+Sistema de triaje pediátrico que estandariza la evaluación inicial en urgencias, integrando el **Triángulo de Evaluación Pediátrica (TEP)**, una clasificación de **5 niveles** (estándar SLEPE) y un módulo de **detección temprana de sepsis** basado en los criterios IPSCC (Goldstein 2005), con activación automática de **Código Sepsis** y protocolo clínico de tratamiento.
 
-El sistema busca:
-
-- Estandarizar la evaluación inicial
-- Reducir la variabilidad clínica
-- Detectar precozmente sepsis
-- Mejorar tiempos de respuesta
-- Aumentar la seguridad del paciente
-
-Está diseñado para **integrarse con sistemas hospitalarios existentes (HIS)** y evolucionar hacia una arquitectura escalable tipo SaaS.
+Desarrollado en conjunto con personal de enfermería con experiencia clínica en emergencias pediátricas.
 
 ---
 
-## 🎯 Objetivos
+## ✅ Estado del proyecto — MVP funcional
 
-### Objetivo principal
-Desarrollar un sistema clínico digital que permita realizar triaje pediátrico estructurado con detección automática de sepsis.
+Lo siguiente ya está implementado y probado de punta a punta (backend + frontend + base de datos):
 
-### Objetivos específicos
-
-- Implementar triaje de 5 niveles
-- Integrar Triángulo de Evaluación Pediátrica (TEP)
-- Detectar criterios de sepsis en tiempo real
-- Generar alertas clínicas automáticas
-- Permitir trazabilidad y auditoría
+- **Triaje de 5 niveles** con rangos de signos vitales ajustados por 6 grupos etarios pediátricos
+- **Triángulo de Evaluación Pediátrica (TEP)**: apariencia, respiración, circulación
+- **Factores de riesgo** que ajustan el nivel: edad < 3 meses, inmunosupresión, cardiopatía congénita, oncológico/quimioterapia, convulsión activa (fuerza nivel mínimo 2), dolor severo, reconsulta 72h, traslado de otro centro
+- **Motor SIRS / Código Sepsis** (criterios IPSCC): activación automática ante ≥2 criterios SIRS + sospecha de infección
+- **Protocolo clínico "Hora de Oro"**: cálculo automático de dosis por peso (bolo de fluidos, antibióticos empíricos, drogas vasoactivas) y clasificación de shock (compensado / descompensado / refractario)
+- **Protocolos de enfermería por nivel de triaje**: acciones, tiempos de reevaluación y signos de alarma
+- **Gestión de pacientes** con antecedentes médicos (alergias, grupo sanguíneo, enfermedades crónicas, medicación habitual, antecedentes quirúrgicos)
+- **Acciones de triage avanzado**: registro de analgésicos, antitérmicos, SRO, O₂, inmovilización, etc. con dosis y hora
+- **Autenticación JWT + control de acceso por rol** (médico / enfermera / admin)
+- **Dashboard** con priorización visual de casos con Código Sepsis activo
 
 ---
 
-## 🧠 Modelo Clínico
+## ⚙️ Stack tecnológico
 
-### 🔴 Triaje de 5 niveles
+| Capa | Tecnología |
+|------|-----------|
+| Backend | FastAPI + SQLAlchemy ORM + Pydantic v2 |
+| Base de datos | PostgreSQL 16 (Alpine) |
+| Autenticación | JWT (python-jose) + passlib/bcrypt |
+| Frontend | Next.js 14 (App Router) + TypeScript + Tailwind CSS |
+| Forms | react-hook-form |
+| Orquestación | Docker Compose (db, backend, frontend) |
 
-| Nivel | Prioridad | Tiempo |
+---
+
+## 🚀 Cómo levantar el proyecto
+
+```bash
+# Primera vez o cuando cambia el modelo de base de datos
+docker compose down -v
+docker compose up --build
+
+# Levantar sin reconstruir
+docker compose up
+```
+
+| | |
+|---|---|
+| URL | `http://localhost:3000` |
+| Swagger API | `http://localhost:8000/docs` |
+| Email admin | `admin@hospital.com` |
+| Password admin | `admin123` |
+
+Las variables de entorno (`SECRET_KEY`, `DATABASE_URL`) se configuran en `.env` — usar `.env.example` como plantilla.
+
+---
+
+## 🧠 Modelo clínico
+
+### Triaje de 5 niveles
+
+| Nivel | Prioridad | Tiempo de espera |
 |------|----------|--------|
 | 1 | Emergencia | Inmediato |
-| 2 | Muy urgente | < 10 min |
-| 3 | Urgente | < 30 min |
-| 4 | Menor urgencia | < 60 min |
-| 5 | No urgente | > 120 min |
+| 2 | Muy urgente | ≤ 10 min |
+| 3 | Urgente | ≤ 30 min |
+| 4 | Menor urgencia | ≤ 60 min |
+| 5 | No urgente | ≤ 120 min |
 
----
+### Código Sepsis — Criterios SIRS (IPSCC Goldstein 2005)
 
-## 👶 Evaluación inicial (TEP)
-
-- Apariencia
-- Respiración
-- Circulación
-
----
-
-## 🚨 Código Sepsis (Core del sistema)
-
-### Criterios de activación (simplificado)
-
-- Fiebre o hipotermia
-- Taquicardia
-- Taquipnea
+- Fiebre (>38.5°C) o hipotermia (<36°C)
+- Taquicardia / taquipnea para la edad
 - Alteración del estado mental
-- Perfusión alterada
-- Sospecha de infección
+- Perfusión alterada (llene capilar >2s)
 
-### Clasificación
+≥2 criterios + sospecha de infección → activa Código Sepsis. Niveles: sospecha → sepsis grave → shock séptico (según disfunción orgánica e hipotensión).
 
-- 🟡 Sepsis sospechada
-- 🔴 Sepsis grave / shock séptico
+### Protocolo "Hora de Oro"
 
-### Acciones automáticas
+Al activarse Código Sepsis y registrar la clasificación de shock, el sistema calcula automáticamente:
 
-- Alerta visual y sonora
-- Generación de checklist clínico
-- Sugerencia de órdenes médicas:
-  - Lactato
-  - Hemocultivos
-  - Antibióticos
-  - Fluidoterapia
+- Bolo de cristaloides (20 ml/kg, máx. 60 ml/kg)
+- Antibioticoterapia empírica según edad (neonato vs. resto) y peso
+- Drogas vasoactivas (regla del 0.6) en shock refractario
+- Checklist de laboratorio crítico (hemocultivos, lactato, EAB, etc.)
 
 ---
 
-## ⚠️ Factores modificadores
+## 🔌 API (resumen)
 
-- Edad < 3 meses
-- Inmunosupresión
-- Enfermedades crónicas
-- Reconsulta
-- Dolor severo
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | /auth/login | Login, retorna JWT |
+| GET/POST | /pacientes/ | Listar / crear pacientes |
+| PUT | /pacientes/{id} | Actualizar paciente y antecedentes |
+| POST | /triaje/ | Crear triaje completo (motores de clasificación + sepsis) |
+| GET | /triaje/ | Listar triajes |
+| GET | /triaje/{id} | Detalle de triaje |
+| GET | /triaje/{id}/sepsis | Resumen de evaluación de sepsis |
+| PATCH | /triaje/{id}/sepsis/clasificacion | Registrar clasificación de shock |
+| POST/GET/DELETE | /triaje/{id}/acciones/ | Acciones de enfermería |
 
----
-
-## 🔄 Flujo del sistema
-
-1. Registro del paciente
-2. Motivo de consulta
-3. Evaluación TEP
-4. Signos vitales
-5. Factores de riesgo
-6. Clasificación de triaje
-7. Evaluación de sepsis
-8. Activación automática (si corresponde)
-9. Generación de recomendaciones clínicas
+Documentación interactiva completa en `/docs` (Swagger).
 
 ---
 
-## 🧩 Arquitectura del sistema
+## 🧭 Roadmap — próximos pasos
 
-### 🏗️ Arquitectura general
+### Modelo clínico
+- Escala de dolor estructurada por edad (NIPS / FLACC / Wong-Baker / numérica)
+- Evaluación de hidratación (con protocolo SRO)
+- Flag Fast Track para niveles IV-V
 
-- Microservicios (orientado a escalabilidad)
-- API-first design
-- Event-driven (para alertas clínicas)
+### Operación hospitalaria
+- Reevaluación de triaje (nueva toma de signos vitales)
+- Cola de espera activa con tiempo transcurrido y alertas por nivel
+- Registro de egreso (alta, internación, derivación, fuga)
 
----
-
-## ⚙️ Stack Tecnológico
-
-### 🔹 Backend
-
-- **FastAPI (Python)** → Alto rendimiento, ideal para prototipos clínicos
-- Alternativa enterprise: **.NET Core Web API**
-
-### 🔹 Base de datos
-
-- **PostgreSQL**
-- ORM: SQLAlchemy / Entity Framework
-
-### 🔹 Frontend
-
-- **Next.js + React**
-- Tailwind CSS
-- (Alternativa hospitalaria: WinForms o WPF)
-
-### 🔹 Mensajería / Eventos
-
-- **RabbitMQ** o **Kafka**
-- Uso:
-  - Alertas de sepsis
-  - Notificaciones internas
-
-### 🔹 Autenticación
-
-- JWT
-- OAuth2 (futuro)
-
-### 🔹 Infraestructura
-
-- Docker
-- Docker Compose
-- Kubernetes (escala)
-
-### 🔹 CI/CD
-
-- GitHub Actions
-
----
-
-## 🗄️ Modelo de Datos (simplificado)
-
-### Paciente
-- id
-- nombre
-- edad
-- sexo
-
-### Triaje
-- id
-- paciente_id
-- nivel
-- motivo_consulta
-- fecha
-
-### SignosVitales
-- fc
-- fr
-- satO2
-- temp
-- ta
-- conciencia
-
-### EvaluacionTEP
-- apariencia
-- respiracion
-- circulacion
-
-### Sepsis
-- sospecha (bool)
-- nivel (amarillo/rojo)
-- lactato
-- tiempo_activacion
-
----
-
-## 📊 Módulos del sistema
-
-### 1. Triaje
-- Clasificación automática
-
-### 2. Sepsis
-- Motor de reglas clínicas
-- Activación de código
-
-### 3. Alertas
-- Visuales
-- Sonoras
-- Eventos
-
-### 4. Protocolos
-- Checklist clínico
-- Guías institucionales
-
-### 5. Auditoría
-- Logs clínicos
-- Tiempos de respuesta
-
----
-
-## 🚀 Escalabilidad
-
-El sistema está preparado para:
-
-- Multi-hospital (SaaS)
-- Integración con HIS
-- Uso en guardias móviles
-- IA predictiva (futuro)
+### Mejoras
+- Historial de triajes por paciente
+- Filtros en dashboard (por nivel, fecha, sepsis activa)
+- Exportación / impresión del triaje en PDF
+- Suite de tests automatizados
 
 ---
 
 ## 🔐 Seguridad
 
-- Encriptación de datos
-- Control de accesos por rol
-- Auditoría de acciones
-- Cumplimiento de normativa de datos
-
----
-
-## 💡 Diferencial
-
-- Basado en práctica real de emergencias pediátricas
-- Integración directa con sepsis (no solo triaje)
-- Diseño pensado para implementación real
-- Potencial como producto SaaS
-
----
-
-## 🧭 Roadmap
-
-### Fase 1
-- MVP de triaje + sepsis
-
-### Fase 2
-- UI clínica
-- Validación con casos reales
-
-### Fase 3
-- Integración hospitalaria
-
-### Fase 4
-- SaaS multi-cliente
-
----
-
-## 📌 Estado del proyecto
-
-🚧 En desarrollo (MVP inicial)
-
----
-
-## 👨‍⚕️ Autor
-
-Proyecto basado en experiencia en emergencias pediátricas y desarrollo de software aplicado a salud.
+- Autenticación JWT con expiración de 8 horas (turno clínico)
+- Control de acceso por rol (RBAC) en endpoints sensibles
+- Variables sensibles fuera del control de versiones (`.env` en `.gitignore`)
+- **Pendiente para producción**: tokens en cookies httpOnly (hoy en `localStorage`, decisión consciente de MVP), rotación de `SECRET_KEY` y credenciales por defecto
 
 ---
 
 ## ⚠️ Disclaimer
 
-Este sistema es un soporte a la decisión clínica.  
-No reemplaza el juicio profesional.
-
----
+Este sistema es un soporte a la decisión clínica. No reemplaza el juicio profesional del equipo de salud.
