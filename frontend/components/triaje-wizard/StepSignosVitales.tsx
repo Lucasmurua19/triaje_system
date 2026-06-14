@@ -1,10 +1,18 @@
 "use client";
 import { useForm } from "react-hook-form";
 import type { SignosVitales } from "@/types";
+import {
+  CLASIFICACION_DOLOR_LABELS,
+  ESCALA_DOLOR_LABELS,
+  PUNTAJE_MAX_POR_ESCALA,
+  clasificarDolor,
+  escalaDolorPorEdad,
+} from "@/lib/dolor";
 
 interface Props {
   onNext: (data: SignosVitales) => void;
   onBack: () => void;
+  edadMeses?: number;
 }
 
 type FormData = {
@@ -18,12 +26,23 @@ type FormData = {
   glasgow: string;
   peso_kg: string;
   llene_capilar_segundos: string;
+  escala_dolor: string;
+  puntaje_dolor: string;
 };
 
 const num = (v: string) => (v.trim() === "" ? undefined : Number(v));
 
-export default function StepSignosVitales({ onNext, onBack }: Props) {
-  const { register, handleSubmit } = useForm<FormData>();
+export default function StepSignosVitales({ onNext, onBack, edadMeses }: Props) {
+  const { register, handleSubmit, watch } = useForm<FormData>({
+    defaultValues: {
+      escala_dolor: escalaDolorPorEdad(edadMeses ?? 999),
+    },
+  });
+
+  const escalaDolor = watch("escala_dolor") as SignosVitales["escala_dolor"];
+  const puntajeDolor = num(watch("puntaje_dolor") ?? "");
+  const clasificacionDolor = clasificarDolor(escalaDolor, puntajeDolor);
+  const puntajeMax = escalaDolor ? PUNTAJE_MAX_POR_ESCALA[escalaDolor] : 10;
 
   function onSubmit(data: FormData) {
     onNext({
@@ -37,6 +56,8 @@ export default function StepSignosVitales({ onNext, onBack }: Props) {
       glasgow: num(data.glasgow),
       peso_kg: num(data.peso_kg),
       llene_capilar_segundos: num(data.llene_capilar_segundos),
+      escala_dolor: data.puntaje_dolor.trim() === "" ? undefined : (data.escala_dolor as SignosVitales["escala_dolor"]),
+      puntaje_dolor: num(data.puntaje_dolor),
     });
   }
 
@@ -117,6 +138,38 @@ export default function StepSignosVitales({ onNext, onBack }: Props) {
             {...register("glasgow")}
           />
         </div>
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-2">Evaluación del dolor</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="label">Escala utilizada</label>
+            <select className="input" {...register("escala_dolor")}>
+              {Object.entries(ESCALA_DOLOR_LABELS).map(([valor, label]) => (
+                <option key={valor} value={valor}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Puntaje (0–{puntajeMax})</label>
+            <input
+              type="number"
+              min={0}
+              max={puntajeMax}
+              className="input"
+              placeholder={`0 a ${puntajeMax}`}
+              {...register("puntaje_dolor")}
+            />
+          </div>
+        </div>
+        {clasificacionDolor && (
+          <p className="text-sm text-gray-600 mt-2">
+            Clasificación: <span className="font-semibold">{CLASIFICACION_DOLOR_LABELS[clasificacionDolor]}</span>
+          </p>
+        )}
       </div>
 
       <div className="flex gap-3">

@@ -2,7 +2,7 @@
 Motor de clasificacion de triaje pediatrico de 5 niveles.
 Toma en cuenta signos vitales, TEP y factores modificadores.
 """
-from app.models.triaje import NivelTriaje, NivelConciencia, SignosVitales, EvaluacionTEP, FactoresRiesgo
+from app.models.triaje import NivelTriaje, NivelConciencia, EscalaDolor, SignosVitales, EvaluacionTEP, FactoresRiesgo
 from app.models.sepsis import NivelSepsis
 from app.services.sepsis_service import calcular_edad_meses, obtener_rangos
 from datetime import date
@@ -27,6 +27,28 @@ def clasificar_triaje(
     nivel = _calcular_nivel_base(fecha_nacimiento, sv, tep)
     nivel = _aplicar_factores_modificadores(nivel, fr)
     return nivel, TIEMPO_ESPERA[nivel]
+
+
+def clasificar_dolor(escala: EscalaDolor | None, puntaje: int | None) -> str | None:
+    """Clasifica la intensidad del dolor a partir del puntaje registrado.
+
+    Cortes para escalas 0-10 (FLACC, Wong-Baker, numerica): leve 1-3, moderado 4-7, severo 8-10.
+    NIPS tiene rango 0-7, por lo que se normaliza proporcionalmente a 0-10 antes de clasificar.
+    """
+    if puntaje is None:
+        return None
+
+    score = puntaje
+    if escala == EscalaDolor.nips:
+        score = round(puntaje * 10 / 7)
+
+    if score == 0:
+        return "sin_dolor"
+    if score <= 3:
+        return "leve"
+    if score <= 7:
+        return "moderado"
+    return "severo"
 
 
 def escalar_por_shock_septico(nivel: NivelTriaje, minutos: int, nivel_sepsis: NivelSepsis) -> tuple[NivelTriaje, int]:
