@@ -74,8 +74,9 @@ export default function PacientesPage() {
                   <tr>
                     <th className="text-left px-6 py-3 text-gray-500 font-medium">Paciente</th>
                     <th className="text-left px-6 py-3 text-gray-500 font-medium">Edad</th>
-                    <th className="text-left px-6 py-3 text-gray-500 font-medium">Sexo</th>
                     <th className="text-left px-6 py-3 text-gray-500 font-medium">Documento</th>
+                    <th className="text-left px-6 py-3 text-gray-500 font-medium">Grupo</th>
+                    <th className="text-left px-6 py-3 text-gray-500 font-medium">Alergias</th>
                     <th className="px-6 py-3"></th>
                   </tr>
                 </thead>
@@ -83,12 +84,30 @@ export default function PacientesPage() {
                   {pacientes.map((p) => (
                     <tr key={p.id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
-                        <p className="font-medium text-gray-900">{p.apellido}, {p.nombre}</p>
+                        <Link href={`/pacientes/${p.id}`} className="font-medium text-gray-900 hover:text-blue-600">
+                          {p.apellido}, {p.nombre}
+                        </Link>
                       </td>
-                      <td className="px-6 py-4 text-gray-600">{calcularEdad(p.fecha_nacimiento)}</td>
-                      <td className="px-6 py-4 text-gray-600 capitalize">{p.sexo}</td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {calcularEdad(p.fecha_nacimiento)}
+                        <span className="ml-1 text-gray-400 capitalize">· {p.sexo}</span>
+                      </td>
                       <td className="px-6 py-4 text-gray-400">{p.documento ?? "—"}</td>
+                      <td className="px-6 py-4 text-gray-600">{p.grupo_sanguineo ?? "—"}</td>
                       <td className="px-6 py-4">
+                        {p.alergias ? (
+                          <span className="text-xs text-red-600 font-medium">{p.alergias}</span>
+                        ) : (
+                          <span className="text-gray-300">—</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 flex gap-3">
+                        <Link
+                          href={`/pacientes/${p.id}`}
+                          className="text-gray-500 hover:text-gray-700 text-sm"
+                        >
+                          Editar
+                        </Link>
                         <Link
                           href={`/triaje/nuevo?paciente=${p.id}`}
                           className="text-blue-600 hover:underline font-medium text-sm"

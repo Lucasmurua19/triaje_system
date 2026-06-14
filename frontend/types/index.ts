@@ -1,6 +1,22 @@
 export type Rol = "medico" | "enfermera" | "admin";
+export type TipoAccion =
+  | "analgesico"
+  | "antipiretico"
+  | "sro"
+  | "oxigeno"
+  | "inmovilizacion"
+  | "limpieza_herida"
+  | "otro";
+
+export type ClasificacionShock = "compensado" | "descompensado" | "refractario";
+
+export interface SepsisBasico {
+  nivel: NivelSepsis;
+  activado: boolean;
+  clasificacion_shock?: ClasificacionShock;
+}
 export type Sexo = "masculino" | "femenino";
-export type NivelConciencia = "alerta" | "voz" | "dolor" | "inconsciente";
+export type NivelConciencia = "alerta" | "irritable" | "confuso" | "voz" | "dolor" | "inconsciente";
 export type NivelTriaje = 1 | 2 | 3 | 4 | 5;
 export type NivelSepsis = "sin_sepsis" | "sospecha" | "sepsis_grave" | "shock_septico";
 
@@ -27,6 +43,11 @@ export interface Paciente {
   documento?: string;
   telefono_contacto?: string;
   observaciones?: string;
+  grupo_sanguineo?: string;
+  alergias?: string;
+  enfermedades_cronicas?: string;
+  medicacion_habitual?: string;
+  antecedentes_quirurgicos?: string;
   created_at: string;
 }
 
@@ -59,6 +80,21 @@ export interface FactoresRiesgo {
   reconsulta_72h: boolean;
   dolor_severo: boolean;
   sospecha_infeccion: boolean;
+  cardiopatia_congenita: boolean;
+  oncologico: boolean;
+  convulsion_activa: boolean;
+  traslado_otro_centro: boolean;
+}
+
+export interface AccionTriaje {
+  id: number;
+  triaje_id: number;
+  usuario_id: number;
+  tipo_accion: TipoAccion;
+  detalle?: string;
+  dosis?: string;
+  hora_administracion?: string;
+  created_at: string;
 }
 
 export interface Triaje {
@@ -73,6 +109,8 @@ export interface Triaje {
   signos_vitales?: SignosVitales & { id: number; triaje_id: number };
   evaluacion_tep?: EvaluacionTEP & { id: number; triaje_id: number };
   factores_riesgo?: FactoresRiesgo & { id: number; triaje_id: number };
+  evaluacion_sepsis?: SepsisBasico;
+  acciones: AccionTriaje[];
 }
 
 export interface SepsisResumen {
@@ -82,6 +120,7 @@ export interface SepsisResumen {
   criterios_positivos: string[];
   recomendaciones: string[];
   color_alerta: "verde" | "amarillo" | "rojo";
+  clasificacion_shock?: ClasificacionShock;
 }
 
 export interface TriajeCompletoPayload {

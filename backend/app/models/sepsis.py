@@ -13,6 +13,12 @@ class NivelSepsis(str, enum.Enum):
     shock_septico = "shock_septico"
 
 
+class ClasificacionShock(str, enum.Enum):
+    compensado = "compensado"
+    descompensado = "descompensado"
+    refractario = "refractario"
+
+
 class EvaluacionSepsis(Base):
     __tablename__ = "evaluaciones_sepsis"
 
@@ -35,6 +41,8 @@ class EvaluacionSepsis(Base):
 
     # Acciones sugeridas (JSON-like en texto, se puede migrar a JSONB)
     recomendaciones = Column(Text, nullable=True)
+
+    clasificacion_shock = Column(SAEnum(ClasificacionShock), nullable=True)
 
     tiempo_activacion = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())

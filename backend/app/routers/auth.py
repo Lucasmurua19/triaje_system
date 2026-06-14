@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.dependencies import get_current_user
-from app.models.user import User
+from app.dependencies import get_current_user, require_roles
+from app.models.user import User, RolUsuario
 from app.schemas.auth import UserCreate, UserOut, Token, LoginForm
 from app.services.auth_service import hash_password, verify_password, create_access_token
 
@@ -11,7 +11,11 @@ router = APIRouter(prefix="/auth", tags=["Autenticacion"])
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(body: UserCreate, db: Session = Depends(get_db)):
+def register(
+    body: UserCreate,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RolUsuario.admin)),
+):
     if db.query(User).filter(User.email == body.email).first():
         raise HTTPException(status_code=400, detail="El email ya está registrado")
     user = User(

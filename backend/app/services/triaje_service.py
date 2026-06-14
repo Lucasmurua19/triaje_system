@@ -3,6 +3,7 @@ Motor de clasificacion de triaje pediatrico de 5 niveles.
 Toma en cuenta signos vitales, TEP y factores modificadores.
 """
 from app.models.triaje import NivelTriaje, NivelConciencia, SignosVitales, EvaluacionTEP, FactoresRiesgo
+from app.models.sepsis import NivelSepsis
 from app.services.sepsis_service import calcular_edad_meses, obtener_rangos
 from datetime import date
 
@@ -26,6 +27,13 @@ def clasificar_triaje(
     nivel = _calcular_nivel_base(fecha_nacimiento, sv, tep)
     nivel = _aplicar_factores_modificadores(nivel, fr)
     return nivel, TIEMPO_ESPERA[nivel]
+
+
+def escalar_por_shock_septico(nivel: NivelTriaje, minutos: int, nivel_sepsis: NivelSepsis) -> tuple[NivelTriaje, int]:
+    """Shock septico es una emergencia inmediata: fuerza Nivel 1 sin importar el nivel base de triaje."""
+    if nivel_sepsis == NivelSepsis.shock_septico and nivel != NivelTriaje.emergencia:
+        return NivelTriaje.emergencia, TIEMPO_ESPERA[NivelTriaje.emergencia]
+    return nivel, minutos
 
 
 def _calcular_nivel_base(
@@ -76,7 +84,8 @@ def _es_nivel_1(sv: SignosVitales, tep: EvaluacionTEP, ta_min: int) -> bool:
 
 
 def _es_nivel_2(sv: SignosVitales, tep: EvaluacionTEP, fc_max: int, fr_max: int, ta_min: int) -> bool:
-    if sv.nivel_conciencia in (NivelConciencia.dolor, NivelConciencia.voz):
+    if sv.nivel_conciencia in (NivelConciencia.dolor, NivelConciencia.voz,
+                                NivelConciencia.confuso, NivelConciencia.irritable):
         return True
     if sv.glasgow is not None and 9 <= sv.glasgow <= 13:
         return True
@@ -133,15 +142,25 @@ def _es_nivel_4(sv: SignosVitales) -> bool:
 
 def _aplicar_factores_modificadores(nivel: NivelTriaje, fr: FactoresRiesgo) -> NivelTriaje:
     """Sube el nivel de triaje (hacia emergencia) si hay factores de riesgo."""
-    subir = False
 
+    # Convulsión activa: fuerza mínimo nivel 2 sin importar los demás factores
+    if fr.convulsion_activa and nivel.value > NivelTriaje.muy_urgente.value:
+        return NivelTriaje.muy_urgente
+
+    subir = False
     if fr.edad_menor_3_meses:
         subir = True
     if fr.inmunosupresion:
         subir = True
+    if fr.oncologico:
+        subir = True
+    if fr.cardiopatia_congenita:
+        subir = True
     if fr.dolor_severo:
         subir = True
     if fr.reconsulta_72h and nivel.value >= NivelTriaje.urgente.value:
+        subir = True
+    if fr.traslado_otro_centro and nivel.value >= NivelTriaje.urgente.value:
         subir = True
 
     if subir and nivel.value > NivelTriaje.emergencia.value:

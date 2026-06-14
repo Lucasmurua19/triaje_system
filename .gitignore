@@ -1,0 +1,10 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Node / Next.js
+node_modules/
+frontend/.next/
+
+# Variables de entorno (usar .env.example como plantilla)
+.env

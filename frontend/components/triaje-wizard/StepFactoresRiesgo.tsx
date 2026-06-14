@@ -9,12 +9,16 @@ interface Props {
 }
 
 const FACTORES = [
-  { key: "sospecha_infeccion", label: "Sospecha de infección", icon: "🦠", color: "red" },
-  { key: "edad_menor_3_meses", label: "Edad menor de 3 meses", icon: "👶", color: "orange" },
-  { key: "inmunosupresion", label: "Inmunosupresión", icon: "💊", color: "orange" },
-  { key: "enfermedad_cronica", label: "Enfermedad crónica de base", icon: "📋", color: "yellow" },
-  { key: "reconsulta_72h", label: "Reconsulta en últimas 72 hs", icon: "🔄", color: "yellow" },
-  { key: "dolor_severo", label: "Dolor severo (EVA > 7)", icon: "😣", color: "yellow" },
+  { key: "sospecha_infeccion",   label: "Sospecha de infección",              icon: "🦠", color: "red"    },
+  { key: "convulsion_activa",    label: "Convulsión activa o reciente",        icon: "⚡", color: "red"    },
+  { key: "oncologico",           label: "Oncológico / quimioterapia activa",   icon: "🎗️", color: "red"    },
+  { key: "edad_menor_3_meses",   label: "Edad menor de 3 meses",              icon: "👶", color: "orange" },
+  { key: "inmunosupresion",      label: "Inmunosupresión",                    icon: "💊", color: "orange" },
+  { key: "cardiopatia_congenita",label: "Cardiopatía congénita",              icon: "❤️", color: "orange" },
+  { key: "traslado_otro_centro", label: "Traslado desde otro centro",         icon: "🚑", color: "orange" },
+  { key: "enfermedad_cronica",   label: "Enfermedad crónica de base",         icon: "📋", color: "yellow" },
+  { key: "reconsulta_72h",       label: "Reconsulta en últimas 72 hs",        icon: "🔄", color: "yellow" },
+  { key: "dolor_severo",         label: "Dolor severo (EVA > 7)",             icon: "😣", color: "yellow" },
 ] as const;
 
 type ColorClass = "red" | "orange" | "yellow";
@@ -34,6 +38,10 @@ export default function StepFactoresRiesgo({ onSubmit, onBack, loading }: Props)
       enfermedad_cronica: false,
       reconsulta_72h: false,
       dolor_severo: false,
+      cardiopatia_congenita: false,
+      oncologico: false,
+      convulsion_activa: false,
+      traslado_otro_centro: false,
     },
   });
 

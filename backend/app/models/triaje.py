@@ -19,9 +19,21 @@ class NivelTriaje(int, enum.Enum):
 
 class NivelConciencia(str, enum.Enum):
     alerta = "alerta"
+    irritable = "irritable"       # lactantes: llanto inconsolable / irritabilidad anormal
+    confuso = "confuso"           # escolar/adolescente: desorientado pero responde
     voz = "voz"
     dolor = "dolor"
     inconsciente = "inconsciente"
+
+
+class TipoAccion(str, enum.Enum):
+    analgesico = "analgesico"
+    antipiretico = "antipiretico"
+    sro = "sro"
+    oxigeno = "oxigeno"
+    inmovilizacion = "inmovilizacion"
+    limpieza_herida = "limpieza_herida"
+    otro = "otro"
 
 
 class Triaje(Base):
@@ -42,6 +54,7 @@ class Triaje(Base):
     evaluacion_tep = relationship("EvaluacionTEP", back_populates="triaje", uselist=False)
     factores_riesgo = relationship("FactoresRiesgo", back_populates="triaje", uselist=False)
     evaluacion_sepsis = relationship("EvaluacionSepsis", back_populates="triaje", uselist=False)
+    acciones = relationship("AccionTriaje", back_populates="triaje", order_by="AccionTriaje.hora_administracion")
 
 
 class SignosVitales(Base):
@@ -56,7 +69,7 @@ class SignosVitales(Base):
     saturacion_o2 = Column(Integer, nullable=True)             # %
     tension_arterial_sistolica = Column(Integer, nullable=True)
     tension_arterial_diastolica = Column(Integer, nullable=True)
-    nivel_conciencia = Column(SAEnum(NivelConciencia), nullable=True)
+    nivel_conciencia = Column(String(50), nullable=True)   # String evita migrations al agregar opciones
     glasgow = Column(Integer, nullable=True)                   # 3-15
     peso_kg = Column(Float, nullable=True)
     llene_capilar_segundos = Column(Float, nullable=True)
@@ -97,6 +110,26 @@ class FactoresRiesgo(Base):
     enfermedad_cronica = Column(Boolean, default=False)
     reconsulta_72h = Column(Boolean, default=False)
     dolor_severo = Column(Boolean, default=False)
-    sospecha_infeccion = Column(Boolean, default=False)  # usado en criterios SIRS
+    sospecha_infeccion = Column(Boolean, default=False)   # usado en criterios SIRS
+    cardiopatia_congenita = Column(Boolean, default=False)
+    oncologico = Column(Boolean, default=False)           # quimioterapia / enfermedad oncológica activa
+    convulsion_activa = Column(Boolean, default=False)    # fuerza mínimo nivel 2
+    traslado_otro_centro = Column(Boolean, default=False)
 
     triaje = relationship("Triaje", back_populates="factores_riesgo")
+
+
+class AccionTriaje(Base):
+    __tablename__ = "acciones_triaje"
+
+    id = Column(Integer, primary_key=True, index=True)
+    triaje_id = Column(Integer, ForeignKey("triajes.id"), nullable=False)
+    usuario_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    tipo_accion = Column(SAEnum(TipoAccion), nullable=False)
+    detalle = Column(Text, nullable=True)
+    dosis = Column(String(100), nullable=True)
+    hora_administracion = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    triaje = relationship("Triaje", back_populates="acciones")
+    usuario = relationship("User")

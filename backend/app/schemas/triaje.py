@@ -1,7 +1,8 @@
 from pydantic import BaseModel, Field
 from datetime import datetime
-from typing import Optional
-from app.models.triaje import NivelTriaje, NivelConciencia
+from typing import List, Optional
+from app.models.triaje import NivelTriaje, NivelConciencia, TipoAccion
+from app.schemas.sepsis import SepsisBasico
 
 
 class SignosVitalesCreate(BaseModel):
@@ -49,11 +50,32 @@ class FactoresRiesgoCreate(BaseModel):
     reconsulta_72h: bool = False
     dolor_severo: bool = False
     sospecha_infeccion: bool = False
+    cardiopatia_congenita: bool = False
+    oncologico: bool = False
+    convulsion_activa: bool = False
+    traslado_otro_centro: bool = False
 
 
 class FactoresRiesgoOut(FactoresRiesgoCreate):
     id: int
     triaje_id: int
+
+    class Config:
+        from_attributes = True
+
+
+class AccionTriajeCreate(BaseModel):
+    tipo_accion: TipoAccion
+    detalle: Optional[str] = None
+    dosis: Optional[str] = None
+    hora_administracion: Optional[datetime] = None
+
+
+class AccionTriajeOut(AccionTriajeCreate):
+    id: int
+    triaje_id: int
+    usuario_id: int
+    created_at: datetime
 
     class Config:
         from_attributes = True
@@ -85,6 +107,8 @@ class TriajeOut(BaseModel):
     signos_vitales: Optional[SignosVitalesOut]
     evaluacion_tep: Optional[EvaluacionTEPOut]
     factores_riesgo: Optional[FactoresRiesgoOut]
+    evaluacion_sepsis: Optional[SepsisBasico] = None
+    acciones: List[AccionTriajeOut] = []
 
     class Config:
         from_attributes = True

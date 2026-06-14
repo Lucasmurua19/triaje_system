@@ -6,7 +6,7 @@ from app.database import get_db
 from app.dependencies import get_current_user
 from app.models.paciente import Paciente
 from app.models.user import User
-from app.schemas.paciente import PacienteCreate, PacienteOut, PacienteListOut
+from app.schemas.paciente import PacienteCreate, PacienteUpdate, PacienteOut, PacienteListOut
 
 router = APIRouter(prefix="/pacientes", tags=["Pacientes"])
 
@@ -62,7 +62,7 @@ def obtener_paciente(
 @router.put("/{paciente_id}", response_model=PacienteOut)
 def actualizar_paciente(
     paciente_id: int,
-    body: PacienteCreate,
+    body: PacienteUpdate,
     db: Session = Depends(get_db),
     _: User = Depends(get_current_user),
 ):

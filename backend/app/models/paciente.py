@@ -24,4 +24,11 @@ class Paciente(Base):
     observaciones = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Antecedentes médicos
+    grupo_sanguineo = Column(String(5), nullable=True)
+    alergias = Column(Text, nullable=True)
+    enfermedades_cronicas = Column(Text, nullable=True)
+    medicacion_habitual = Column(Text, nullable=True)
+    antecedentes_quirurgicos = Column(Text, nullable=True)
+
     triajes = relationship("Triaje", back_populates="paciente")

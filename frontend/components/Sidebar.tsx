@@ -3,10 +3,11 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { clearSession, getUser } from "@/lib/auth";
 
-const links = [
-  { href: "/dashboard", label: "Inicio", icon: "🏠" },
-  { href: "/triaje/nuevo", label: "Nuevo Triaje", icon: "➕" },
-  { href: "/pacientes", label: "Pacientes", icon: "👶" },
+const LINKS = [
+  { href: "/dashboard",      label: "Inicio",       icon: "🏠", roles: null },
+  { href: "/triaje/nuevo",   label: "Nuevo Triaje", icon: "➕", roles: ["enfermera", "admin"] },
+  { href: "/pacientes",      label: "Pacientes",    icon: "👶", roles: null },
+  { href: "/usuarios/nuevo", label: "Usuarios",     icon: "👤", roles: ["admin"] },
 ];
 
 export default function Sidebar() {
@@ -18,6 +19,10 @@ export default function Sidebar() {
     clearSession();
     router.push("/login");
   }
+
+  const visibleLinks = LINKS.filter(
+    (l) => l.roles === null || (user?.rol && l.roles.includes(user.rol))
+  );
 
   return (
     <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0">
@@ -34,7 +39,7 @@ export default function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {links.map((link) => {
+        {visibleLinks.map((link) => {
           const active = pathname === link.href || pathname.startsWith(link.href + "/");
           return (
             <Link

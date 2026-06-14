@@ -35,7 +35,10 @@ TIEMPO_ATENCION_POR_NIVEL = {1: 0, 2: 10, 3: 30, 4: 60, 5: 120}
 
 def calcular_edad_meses(fecha_nacimiento: date) -> int:
     hoy = date.today()
-    return (hoy.year - fecha_nacimiento.year) * 12 + (hoy.month - fecha_nacimiento.month)
+    meses = (hoy.year - fecha_nacimiento.year) * 12 + (hoy.month - fecha_nacimiento.month)
+    if hoy.day < fecha_nacimiento.day:
+        meses -= 1
+    return meses
 
 
 def obtener_rangos(edad_meses: int) -> Tuple[int, int, int]:
@@ -96,7 +99,7 @@ def evaluar_sirs(
 
     # Sepsis segun IPSCC: >= 2 criterios SIRS + infeccion sospechada
     # Al menos uno debe ser temperatura (aqui relajamos: temperatura O mental O perfusion como ancla)
-    tiene_ancla = criterios["temperatura"] or criterios["mental"]
+    tiene_ancla = criterios["temperatura"] or criterios["mental"] or criterios["perfusion"]
     sospecha_infeccion = fr.sospecha_infeccion
 
     nivel = _clasificar_nivel_sepsis(
@@ -137,7 +140,7 @@ def _clasificar_nivel_sepsis(
     sv: SignosVitales,
     ta_min: int,
 ) -> NivelSepsis:
-    if total_sirs < 2 or not sospecha_infeccion:
+    if total_sirs < 2 or not sospecha_infeccion or not tiene_ancla:
         return NivelSepsis.sin_sepsis
 
     # Shock septico: hipotension a pesar de fluidos O necesidad de vasopresores

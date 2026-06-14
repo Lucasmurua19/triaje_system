@@ -3,9 +3,13 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import type { Triaje, SepsisResumen } from "@/types";
+import type { Triaje, SepsisResumen, Paciente, ClasificacionShock } from "@/types";
 import NivelBadge from "@/components/NivelBadge";
 import SepsisAlert from "@/components/SepsisAlert";
+import SepsisCodeModal from "@/components/SepsisCodeModal";
+import ProtocoloSepsis from "@/components/ProtocoloSepsis";
+import AccionesTriaje from "@/components/AccionesTriaje";
+import ProtocoloNivel from "@/components/ProtocoloNivel";
 import Sidebar from "@/components/Sidebar";
 
 function InfoRow({ label, value }: { label: string; value?: string | number | null }) {
@@ -17,24 +21,50 @@ function InfoRow({ label, value }: { label: string; value?: string | number | nu
   );
 }
 
+function calcEdadMeses(fechaNac?: string): number {
+  if (!fechaNac) return 0;
+  const hoy = new Date();
+  const nac = new Date(fechaNac);
+  return (hoy.getFullYear() - nac.getFullYear()) * 12 + (hoy.getMonth() - nac.getMonth());
+}
+
 export default function TriajeDetallePage() {
   const { id } = useParams<{ id: string }>();
   const [triaje, setTriaje] = useState<Triaje | null>(null);
   const [sepsis, setSepsis] = useState<SepsisResumen | null>(null);
+  const [paciente, setPaciente] = useState<Paciente | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Estado del modal y clasificación
+  const [modalConfirmado, setModalConfirmado] = useState(false);
+  const [clasificacion, setClasificacion] = useState<ClasificacionShock | undefined>();
 
   useEffect(() => {
     Promise.all([
       api.get<Triaje>(`/triaje/${id}`),
       api.get<SepsisResumen>(`/triaje/${id}/sepsis`),
     ])
-      .then(([t, s]) => {
+      .then(async ([t, s]) => {
         setTriaje(t);
         setSepsis(s);
+
+        // Si ya tiene clasificación guardada en backend, el modal ya fue confirmado antes
+        if (s.clasificacion_shock) {
+          setModalConfirmado(true);
+          setClasificacion(s.clasificacion_shock);
+        }
+
+        const p = await api.get<Paciente>(`/pacientes/${t.paciente_id}`).catch(() => null);
+        setPaciente(p);
       })
       .catch(console.error)
       .finally(() => setLoading(false));
   }, [id]);
+
+  function handleConfirmModal(cls: ClasificacionShock) {
+    setClasificacion(cls);
+    setModalConfirmado(true);
+  }
 
   if (loading) {
     return (
@@ -48,15 +78,28 @@ export default function TriajeDetallePage() {
   }
 
   if (!triaje) return null;
+
   const sv = triaje.signos_vitales;
   const tep = triaje.evaluacion_tep;
   const fr = triaje.factores_riesgo;
+  const sepsisActiva = sepsis?.activado;
+  const edadMeses = calcEdadMeses(paciente?.fecha_nacimiento);
 
   return (
     <div className="flex min-h-screen bg-gray-50">
       <Sidebar />
       <main className="flex-1 p-8">
         <div className="max-w-3xl mx-auto space-y-6">
+
+          {/* Modal bloqueante — aparece solo si sepsis activa y no confirmada aún */}
+          {sepsisActiva && !modalConfirmado && sepsis && (
+            <SepsisCodeModal
+              triajeId={triaje.id}
+              nivelSepsis={sepsis.nivel}
+              onConfirm={handleConfirmModal}
+            />
+          )}
+
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <Link href="/dashboard" className="hover:text-gray-600">Dashboard</Link>
@@ -70,6 +113,11 @@ export default function TriajeDetallePage() {
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-2xl font-bold text-gray-900">Triaje #{triaje.id}</h1>
                 <NivelBadge nivel={triaje.nivel as 1 | 2 | 3 | 4 | 5 | undefined} />
+                {sepsisActiva && (
+                  <span className="text-xs font-bold bg-red-600 text-white px-2 py-1 rounded-full animate-pulse">
+                    🚨 CÓDIGO SEPSIS
+                  </span>
+                )}
               </div>
               <p className="text-gray-500 text-sm">
                 {new Date(triaje.fecha).toLocaleString("es-AR", {
@@ -88,8 +136,23 @@ export default function TriajeDetallePage() {
             )}
           </div>
 
-          {/* Alerta Sepsis — primero y prominente */}
+          {/* Alerta Sepsis */}
           {sepsis && <SepsisAlert data={sepsis} />}
+
+          {/* Protocolo clínico — visible solo cuando sepsis activa y modal confirmado */}
+          {sepsisActiva && modalConfirmado && (
+            <ProtocoloSepsis
+              peso={sv?.peso_kg}
+              fechaNacimiento={paciente?.fecha_nacimiento}
+              clasificacion={clasificacion}
+              nivel={sepsis!.nivel}
+            />
+          )}
+
+          {/* Protocolo por nivel — visible cuando NO hay código sepsis */}
+          {!sepsisActiva && (
+            <ProtocoloNivel nivel={triaje.nivel} />
+          )}
 
           {/* Motivo */}
           <div className="card">
@@ -109,7 +172,9 @@ export default function TriajeDetallePage() {
                   <InfoRow label="SatO₂" value={sv.saturacion_o2 ? `${sv.saturacion_o2}%` : undefined} />
                   <InfoRow
                     label="TA"
-                    value={sv.tension_arterial_sistolica ? `${sv.tension_arterial_sistolica}/${sv.tension_arterial_diastolica} mmHg` : undefined}
+                    value={sv.tension_arterial_sistolica
+                      ? `${sv.tension_arterial_sistolica}/${sv.tension_arterial_diastolica} mmHg`
+                      : undefined}
                   />
                   <InfoRow label="Conciencia" value={sv.nivel_conciencia} />
                   <InfoRow label="Glasgow" value={sv.glasgow} />
@@ -157,6 +222,50 @@ export default function TriajeDetallePage() {
               </div>
             </div>
           </div>
+
+          {/* Antecedentes del paciente */}
+          {paciente && (paciente.alergias || paciente.enfermedades_cronicas || paciente.medicacion_habitual || paciente.antecedentes_quirurgicos || paciente.grupo_sanguineo) && (
+            <div className="card">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="font-semibold text-gray-800">Antecedentes del paciente</h2>
+                <Link href={`/pacientes/${paciente.id}`} className="text-xs text-blue-600 hover:underline">
+                  Editar →
+                </Link>
+              </div>
+              <div className="grid grid-cols-2 gap-x-8">
+                {paciente.grupo_sanguineo && (
+                  <InfoRow label="Grupo sanguíneo" value={paciente.grupo_sanguineo} />
+                )}
+                {paciente.alergias && (
+                  <div className="col-span-2 flex justify-between py-2 border-b border-gray-50">
+                    <span className="text-sm text-red-500 font-medium">Alergias</span>
+                    <span className="text-sm font-medium text-red-700 text-right max-w-xs">{paciente.alergias}</span>
+                  </div>
+                )}
+                {paciente.enfermedades_cronicas && (
+                  <div className="col-span-2 flex justify-between py-2 border-b border-gray-50">
+                    <span className="text-sm text-gray-500">Enf. crónicas</span>
+                    <span className="text-sm font-medium text-gray-800 text-right max-w-xs">{paciente.enfermedades_cronicas}</span>
+                  </div>
+                )}
+                {paciente.medicacion_habitual && (
+                  <div className="col-span-2 flex justify-between py-2 border-b border-gray-50">
+                    <span className="text-sm text-gray-500">Medicación habitual</span>
+                    <span className="text-sm font-medium text-gray-800 text-right max-w-xs">{paciente.medicacion_habitual}</span>
+                  </div>
+                )}
+                {paciente.antecedentes_quirurgicos && (
+                  <div className="col-span-2 flex justify-between py-2">
+                    <span className="text-sm text-gray-500">Antec. quirúrgicos</span>
+                    <span className="text-sm font-medium text-gray-800 text-right max-w-xs">{paciente.antecedentes_quirurgicos}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Acciones de enfermería */}
+          <AccionesTriaje triajeId={triaje.id} acciones={triaje.acciones ?? []} />
 
           <div className="flex gap-3">
             <Link href="/dashboard" className="btn-secondary">
