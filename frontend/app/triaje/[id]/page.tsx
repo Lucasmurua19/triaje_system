@@ -5,6 +5,8 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import type { Triaje, SepsisResumen, Paciente, ClasificacionShock } from "@/types";
 import NivelBadge from "@/components/NivelBadge";
+import DolorBadge from "@/components/DolorBadge";
+import { ESCALA_DOLOR_LABELS, PUNTAJE_MAX_POR_ESCALA } from "@/lib/dolor";
 import SepsisAlert from "@/components/SepsisAlert";
 import SepsisCodeModal from "@/components/SepsisCodeModal";
 import ProtocoloSepsis from "@/components/ProtocoloSepsis";
@@ -183,6 +185,19 @@ export default function TriajeDetallePage() {
                     label="Llene capilar"
                     value={sv.llene_capilar_segundos ? `${sv.llene_capilar_segundos} seg` : undefined}
                   />
+                  {sv.puntaje_dolor !== undefined && (
+                    <div className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                      <span className="text-sm text-gray-500">
+                        Dolor ({sv.escala_dolor ? ESCALA_DOLOR_LABELS[sv.escala_dolor] : "—"})
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-800">
+                          {sv.puntaje_dolor}/{sv.escala_dolor ? PUNTAJE_MAX_POR_ESCALA[sv.escala_dolor] : 10}
+                        </span>
+                        <DolorBadge clasificacion={sv.clasificacion_dolor} />
+                      </div>
+                    </div>
+                  )}
                 </>
               ) : (
                 <p className="text-gray-400 text-sm">Sin datos</p>

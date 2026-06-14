@@ -1,8 +1,9 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, computed_field
 from datetime import datetime
 from typing import List, Optional
-from app.models.triaje import NivelTriaje, NivelConciencia, TipoAccion
+from app.models.triaje import NivelTriaje, NivelConciencia, EscalaDolor, TipoAccion
 from app.schemas.sepsis import SepsisBasico
+from app.services.triaje_service import clasificar_dolor
 
 
 class SignosVitalesCreate(BaseModel):
@@ -16,11 +17,18 @@ class SignosVitalesCreate(BaseModel):
     glasgow: Optional[int] = Field(None, ge=3, le=15)
     peso_kg: Optional[float] = None
     llene_capilar_segundos: Optional[float] = None
+    escala_dolor: Optional[EscalaDolor] = None
+    puntaje_dolor: Optional[int] = Field(None, ge=0, le=10)
 
 
 class SignosVitalesOut(SignosVitalesCreate):
     id: int
     triaje_id: int
+
+    @computed_field
+    @property
+    def clasificacion_dolor(self) -> Optional[str]:
+        return clasificar_dolor(self.escala_dolor, self.puntaje_dolor)
 
     class Config:
         from_attributes = True
