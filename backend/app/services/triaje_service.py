@@ -3,6 +3,7 @@ Motor de clasificacion de triaje pediatrico de 5 niveles.
 Toma en cuenta signos vitales, TEP y factores modificadores.
 """
 from app.models.triaje import NivelTriaje, NivelConciencia, SignosVitales, EvaluacionTEP, FactoresRiesgo
+from app.models.sepsis import NivelSepsis
 from app.services.sepsis_service import calcular_edad_meses, obtener_rangos
 from datetime import date
 
@@ -26,6 +27,13 @@ def clasificar_triaje(
     nivel = _calcular_nivel_base(fecha_nacimiento, sv, tep)
     nivel = _aplicar_factores_modificadores(nivel, fr)
     return nivel, TIEMPO_ESPERA[nivel]
+
+
+def escalar_por_shock_septico(nivel: NivelTriaje, minutos: int, nivel_sepsis: NivelSepsis) -> tuple[NivelTriaje, int]:
+    """Shock septico es una emergencia inmediata: fuerza Nivel 1 sin importar el nivel base de triaje."""
+    if nivel_sepsis == NivelSepsis.shock_septico and nivel != NivelTriaje.emergencia:
+        return NivelTriaje.emergencia, TIEMPO_ESPERA[NivelTriaje.emergencia]
+    return nivel, minutos
 
 
 def _calcular_nivel_base(
