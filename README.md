@@ -26,6 +26,7 @@ Lo siguiente ya está implementado y probado de punta a punta (backend + fronten
 - **Acciones de triage avanzado**: registro de analgésicos, antitérmicos, SRO, O₂, inmovilización, etc. con dosis y hora
 - **Autenticación JWT + control de acceso por rol** (médico / enfermera / admin)
 - **Dashboard** con priorización visual de casos con Código Sepsis activo
+- **Tests automatizados (pytest)** para los motores de clasificación de triaje y SIRS/sepsis
 
 ---
 
@@ -114,6 +115,18 @@ Documentación interactiva completa en `/docs` (Swagger).
 
 ---
 
+## 🧪 Tests
+
+Tests unitarios (pytest) para los motores de triaje y sepsis, sin necesidad de base de datos:
+
+```bash
+docker compose exec backend pytest -v
+```
+
+Cubren los 5 niveles de triaje, el TEP, los factores de riesgo modificadores, los criterios SIRS (IPSCC) y la clasificación de sepsis (sospecha / grave / shock séptico).
+
+---
+
 ## 🧭 Roadmap — próximos pasos
 
 ### Modelo clínico
@@ -130,7 +143,7 @@ Documentación interactiva completa en `/docs` (Swagger).
 - Historial de triajes por paciente
 - Filtros en dashboard (por nivel, fecha, sepsis activa)
 - Exportación / impresión del triaje en PDF
-- Suite de tests automatizados
+- Tests automatizados para routers (API) y frontend
 
 ---
 
