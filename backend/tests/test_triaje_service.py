@@ -3,8 +3,8 @@ from datetime import date
 import pytest
 
 from app.models.sepsis import NivelSepsis
-from app.models.triaje import NivelTriaje
-from app.services.triaje_service import clasificar_triaje, escalar_por_shock_septico
+from app.models.triaje import EscalaDolor, NivelTriaje
+from app.services.triaje_service import clasificar_dolor, clasificar_triaje, escalar_por_shock_septico
 
 from .factories import make_fr, make_sv, make_tep
 
@@ -216,3 +216,37 @@ class TestEscalarPorShockSeptico:
         nivel, minutos = escalar_por_shock_septico(NivelTriaje.urgente, 30, nivel_sepsis)
         assert nivel == NivelTriaje.urgente
         assert minutos == 30
+
+
+# ---------------------------------------------------------------------------
+# clasificar_dolor (Escala de dolor estructurada)
+# ---------------------------------------------------------------------------
+
+class TestClasificarDolor:
+    def test_sin_puntaje_no_clasifica(self):
+        assert clasificar_dolor(EscalaDolor.numerica, None) is None
+
+    def test_puntaje_0_es_sin_dolor(self):
+        assert clasificar_dolor(EscalaDolor.numerica, 0) == "sin_dolor"
+
+    @pytest.mark.parametrize("puntaje", [1, 2, 3])
+    def test_escala_0_10_leve(self, puntaje):
+        assert clasificar_dolor(EscalaDolor.numerica, puntaje) == "leve"
+
+    @pytest.mark.parametrize("puntaje", [4, 5, 7])
+    def test_escala_0_10_moderado(self, puntaje):
+        assert clasificar_dolor(EscalaDolor.wong_baker, puntaje) == "moderado"
+
+    @pytest.mark.parametrize("puntaje", [8, 9, 10])
+    def test_escala_0_10_severo(self, puntaje):
+        assert clasificar_dolor(EscalaDolor.flacc, puntaje) == "severo"
+
+    def test_nips_se_normaliza_a_escala_0_10(self):
+        # NIPS rango 0-7: puntaje maximo (7) equivale a severo (10/10)
+        assert clasificar_dolor(EscalaDolor.nips, 7) == "severo"
+        # puntaje 0 sigue siendo sin dolor
+        assert clasificar_dolor(EscalaDolor.nips, 0) == "sin_dolor"
+        # 2/7 -> ~2.9/10 -> leve
+        assert clasificar_dolor(EscalaDolor.nips, 2) == "leve"
+        # 3/7 -> ~4.3/10 -> moderado
+        assert clasificar_dolor(EscalaDolor.nips, 3) == "moderado"

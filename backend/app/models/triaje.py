@@ -26,6 +26,13 @@ class NivelConciencia(str, enum.Enum):
     inconsciente = "inconsciente"
 
 
+class EscalaDolor(str, enum.Enum):
+    nips = "nips"                 # Neonatal Infant Pain Scale (0-7) - neonatos
+    flacc = "flacc"                # Face, Legs, Activity, Cry, Consolability (0-10) - no colaboradores
+    wong_baker = "wong_baker"      # Escala de caras (0-10) - preescolares/escolares <7a
+    numerica = "numerica"          # Escala numerica/EVA (0-10) - >7a, autoreporte
+
+
 class TipoAccion(str, enum.Enum):
     analgesico = "analgesico"
     antipiretico = "antipiretico"
@@ -73,6 +80,8 @@ class SignosVitales(Base):
     glasgow = Column(Integer, nullable=True)                   # 3-15
     peso_kg = Column(Float, nullable=True)
     llene_capilar_segundos = Column(Float, nullable=True)
+    escala_dolor = Column(SAEnum(EscalaDolor), nullable=True)
+    puntaje_dolor = Column(Integer, nullable=True)             # 0-10 (NIPS: 0-7)
 
     triaje = relationship("Triaje", back_populates="signos_vitales")
 
