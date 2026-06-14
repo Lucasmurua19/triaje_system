@@ -35,7 +35,10 @@ TIEMPO_ATENCION_POR_NIVEL = {1: 0, 2: 10, 3: 30, 4: 60, 5: 120}
 
 def calcular_edad_meses(fecha_nacimiento: date) -> int:
     hoy = date.today()
-    return (hoy.year - fecha_nacimiento.year) * 12 + (hoy.month - fecha_nacimiento.month)
+    meses = (hoy.year - fecha_nacimiento.year) * 12 + (hoy.month - fecha_nacimiento.month)
+    if hoy.day < fecha_nacimiento.day:
+        meses -= 1
+    return meses
 
 
 def obtener_rangos(edad_meses: int) -> Tuple[int, int, int]:

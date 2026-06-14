@@ -12,7 +12,7 @@ from app.models.user import User
 from app.schemas.triaje import TriajeCompleto, TriajeOut, AccionTriajeCreate, AccionTriajeOut
 from app.schemas.sepsis import SepsisResumen, ClasificacionUpdate
 from app.models.sepsis import ClasificacionShock
-from app.services.triaje_service import clasificar_triaje
+from app.services.triaje_service import clasificar_triaje, escalar_por_shock_septico
 from app.services.sepsis_service import evaluar_sirs, calcular_edad_meses
 from datetime import datetime, timezone
 import json
@@ -55,13 +55,16 @@ def crear_triaje_completo(
 
     # 5. Motor de clasificacion de triaje
     nivel, minutos = clasificar_triaje(paciente.fecha_nacimiento, sv, tep, fr)
-    triaje.nivel = nivel
-    triaje.tiempo_espera_minutos = minutos
-    triaje.completado = True
 
     # 6. Motor SIRS
     edad_meses = calcular_edad_meses(paciente.fecha_nacimiento)
     resultado_sirs = evaluar_sirs(edad_meses, sv, fr)
+
+    # Shock septico es una emergencia inmediata, sin importar el nivel base
+    nivel, minutos = escalar_por_shock_septico(nivel, minutos, resultado_sirs["nivel"])
+    triaje.nivel = nivel
+    triaje.tiempo_espera_minutos = minutos
+    triaje.completado = True
 
     sepsis = EvaluacionSepsis(
         triaje_id=triaje.id,
