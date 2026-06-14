@@ -46,10 +46,15 @@ export default function NuevoTriajePage() {
     }
   }
 
-  function calcularEdad(fechaNac: string) {
-    const meses =
+  function calcularEdadMeses(fechaNac: string) {
+    return (
       (new Date().getFullYear() - new Date(fechaNac).getFullYear()) * 12 +
-      (new Date().getMonth() - new Date(fechaNac).getMonth());
+      (new Date().getMonth() - new Date(fechaNac).getMonth())
+    );
+  }
+
+  function calcularEdad(fechaNac: string) {
+    const meses = calcularEdadMeses(fechaNac);
     return meses < 24 ? `${meses} meses` : `${Math.floor(meses / 12)} años`;
   }
 
@@ -140,6 +145,7 @@ export default function NuevoTriajePage() {
                   setPaso(3);
                 }}
                 onBack={() => setPaso(1)}
+                edadMeses={paciente ? calcularEdadMeses(paciente.fecha_nacimiento) : undefined}
               />
             )}
             {paso === 3 && (

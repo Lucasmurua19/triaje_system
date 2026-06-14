@@ -19,6 +19,8 @@ export type Sexo = "masculino" | "femenino";
 export type NivelConciencia = "alerta" | "irritable" | "confuso" | "voz" | "dolor" | "inconsciente";
 export type NivelTriaje = 1 | 2 | 3 | 4 | 5;
 export type NivelSepsis = "sin_sepsis" | "sospecha" | "sepsis_grave" | "shock_septico";
+export type EscalaDolor = "nips" | "flacc" | "wong_baker" | "numerica";
+export type ClasificacionDolor = "sin_dolor" | "leve" | "moderado" | "severo";
 
 export interface User {
   id: number;
@@ -62,6 +64,8 @@ export interface SignosVitales {
   glasgow?: number;
   peso_kg?: number;
   llene_capilar_segundos?: number;
+  escala_dolor?: EscalaDolor;
+  puntaje_dolor?: number;
 }
 
 export interface EvaluacionTEP {
@@ -106,7 +110,7 @@ export interface Triaje {
   tiempo_espera_minutos?: number;
   fecha: string;
   completado: boolean;
-  signos_vitales?: SignosVitales & { id: number; triaje_id: number };
+  signos_vitales?: SignosVitales & { id: number; triaje_id: number; clasificacion_dolor?: ClasificacionDolor };
   evaluacion_tep?: EvaluacionTEP & { id: number; triaje_id: number };
   factores_riesgo?: FactoresRiesgo & { id: number; triaje_id: number };
   evaluacion_sepsis?: SepsisBasico;
