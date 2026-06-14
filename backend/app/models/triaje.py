@@ -33,6 +33,13 @@ class EscalaDolor(str, enum.Enum):
     numerica = "numerica"          # Escala numerica/EVA (0-10) - >7a, autoreporte
 
 
+class EstadoHidratacion(str, enum.Enum):
+    normohidratado = "normohidratado"
+    deshidratacion_leve = "deshidratacion_leve"
+    deshidratacion_moderada = "deshidratacion_moderada"
+    deshidratacion_severa = "deshidratacion_severa"
+
+
 class TipoAccion(str, enum.Enum):
     analgesico = "analgesico"
     antipiretico = "antipiretico"
@@ -82,6 +89,7 @@ class SignosVitales(Base):
     llene_capilar_segundos = Column(Float, nullable=True)
     escala_dolor = Column(SAEnum(EscalaDolor), nullable=True)
     puntaje_dolor = Column(Integer, nullable=True)             # 0-10 (NIPS: 0-7)
+    estado_hidratacion = Column(SAEnum(EstadoHidratacion), nullable=True)
 
     triaje = relationship("Triaje", back_populates="signos_vitales")
 

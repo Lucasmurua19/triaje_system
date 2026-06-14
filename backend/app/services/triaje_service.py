@@ -2,7 +2,10 @@
 Motor de clasificacion de triaje pediatrico de 5 niveles.
 Toma en cuenta signos vitales, TEP y factores modificadores.
 """
-from app.models.triaje import NivelTriaje, NivelConciencia, EscalaDolor, SignosVitales, EvaluacionTEP, FactoresRiesgo
+from app.models.triaje import (
+    NivelTriaje, NivelConciencia, EscalaDolor, EstadoHidratacion,
+    SignosVitales, EvaluacionTEP, FactoresRiesgo,
+)
 from app.models.sepsis import NivelSepsis
 from app.services.sepsis_service import calcular_edad_meses, obtener_rangos
 from datetime import date
@@ -49,6 +52,20 @@ def clasificar_dolor(escala: EscalaDolor | None, puntaje: int | None) -> str | N
     if score <= 7:
         return "moderado"
     return "severo"
+
+
+def recomendar_hidratacion(estado: EstadoHidratacion | None) -> str | None:
+    """Sugiere el plan de rehidratacion (AIEPI/OMS) segun el estado evaluado."""
+    if estado is None:
+        return None
+
+    if estado == EstadoHidratacion.normohidratado:
+        return "Plan A: hidratacion habitual, indicar signos de alarma para reconsulta"
+    if estado == EstadoHidratacion.deshidratacion_leve:
+        return "Plan A/B: iniciar SRO (sales de rehidratacion oral) y reevaluar en 4 horas"
+    if estado == EstadoHidratacion.deshidratacion_moderada:
+        return "Plan B: SRO supervisado en sala (50-100 ml/kg en 4 horas) y reevaluar tolerancia"
+    return "Plan C: rehidratacion IV urgente, alerta medica inmediata"
 
 
 def escalar_por_shock_septico(nivel: NivelTriaje, minutos: int, nivel_sepsis: NivelSepsis) -> tuple[NivelTriaje, int]:

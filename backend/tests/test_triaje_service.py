@@ -3,8 +3,13 @@ from datetime import date
 import pytest
 
 from app.models.sepsis import NivelSepsis
-from app.models.triaje import EscalaDolor, NivelTriaje
-from app.services.triaje_service import clasificar_dolor, clasificar_triaje, escalar_por_shock_septico
+from app.models.triaje import EscalaDolor, EstadoHidratacion, NivelTriaje
+from app.services.triaje_service import (
+    clasificar_dolor,
+    clasificar_triaje,
+    escalar_por_shock_septico,
+    recomendar_hidratacion,
+)
 
 from .factories import make_fr, make_sv, make_tep
 
@@ -250,3 +255,24 @@ class TestClasificarDolor:
         assert clasificar_dolor(EscalaDolor.nips, 2) == "leve"
         # 3/7 -> ~4.3/10 -> moderado
         assert clasificar_dolor(EscalaDolor.nips, 3) == "moderado"
+
+
+# ---------------------------------------------------------------------------
+# recomendar_hidratacion (Evaluacion de hidratacion)
+# ---------------------------------------------------------------------------
+
+class TestRecomendarHidratacion:
+    def test_sin_estado_no_recomienda(self):
+        assert recomendar_hidratacion(None) is None
+
+    def test_normohidratado_plan_a(self):
+        assert recomendar_hidratacion(EstadoHidratacion.normohidratado).startswith("Plan A:")
+
+    def test_deshidratacion_leve_plan_a_b(self):
+        assert recomendar_hidratacion(EstadoHidratacion.deshidratacion_leve).startswith("Plan A/B:")
+
+    def test_deshidratacion_moderada_plan_b(self):
+        assert recomendar_hidratacion(EstadoHidratacion.deshidratacion_moderada).startswith("Plan B:")
+
+    def test_deshidratacion_severa_plan_c(self):
+        assert recomendar_hidratacion(EstadoHidratacion.deshidratacion_severa).startswith("Plan C:")
