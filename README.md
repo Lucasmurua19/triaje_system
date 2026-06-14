@@ -25,6 +25,7 @@ Lo siguiente ya está implementado y probado de punta a punta (backend + fronten
 - **Gestión de pacientes** con antecedentes médicos (alergias, grupo sanguíneo, enfermedades crónicas, medicación habitual, antecedentes quirúrgicos)
 - **Acciones de triage avanzado**: registro de analgésicos, antitérmicos, SRO, O₂, inmovilización, etc. con dosis y hora
 - **Escala de dolor estructurada**: NIPS (neonatos), FLACC (no colaboradores), Wong-Baker (caras, <7 años) o numérica/EVA (≥7 años), con escala sugerida según la edad del paciente y clasificación automática (sin dolor / leve / moderado / severo)
+- **Evaluación de hidratación**: normohidratado / deshidratación leve / moderada / severa, con sugerencia automática del plan de rehidratación (AIEPI/OMS, Plan A/B/C) para pacientes con vómitos o diarrea
 - **Autenticación JWT + control de acceso por rol** (médico / enfermera / admin)
 - **Dashboard** con priorización visual de casos con Código Sepsis activo
 - **Tests automatizados (pytest)** para los motores de clasificación de triaje y SIRS/sepsis
@@ -124,14 +125,13 @@ Tests unitarios (pytest) para los motores de triaje y sepsis, sin necesidad de b
 docker compose exec backend pytest -v
 ```
 
-Cubren los 5 niveles de triaje, el TEP, los factores de riesgo modificadores, los criterios SIRS (IPSCC), la clasificación de sepsis (sospecha / grave / shock séptico) y la clasificación de dolor (NIPS / FLACC / Wong-Baker / numérica).
+Cubren los 5 niveles de triaje, el TEP, los factores de riesgo modificadores, los criterios SIRS (IPSCC), la clasificación de sepsis (sospecha / grave / shock séptico), la clasificación de dolor (NIPS / FLACC / Wong-Baker / numérica) y la recomendación de plan de rehidratación (Plan A/B/C).
 
 ---
 
 ## 🧭 Roadmap — próximos pasos
 
 ### Modelo clínico
-- Evaluación de hidratación (con protocolo SRO)
 - Flag Fast Track para niveles IV-V
 
 ### Operación hospitalaria
