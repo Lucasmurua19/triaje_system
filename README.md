@@ -21,6 +21,7 @@ Lo siguiente ya está implementado y probado de punta a punta (backend + fronten
 - **Factores de riesgo** que ajustan el nivel: edad < 3 meses, inmunosupresión, cardiopatía congénita, oncológico/quimioterapia, convulsión activa (fuerza nivel mínimo 2), dolor severo, reconsulta 72h, traslado de otro centro
 - **Motor SIRS / Código Sepsis** (criterios IPSCC): activación automática ante ≥2 criterios SIRS + sospecha de infección
 - **Protocolo clínico "Hora de Oro"**: cálculo automático de dosis por peso (bolo de fluidos, antibióticos empíricos, drogas vasoactivas) y clasificación de shock (compensado / descompensado / refractario)
+- **Códigos de activación adicionales** (evaluación bajo demanda, motor de criterios propio por código): **Código Trauma** (criterios fisiológicos/anatómicos/mecanismo de lesión), **Código Convulsiones** (estado convulsivo — ILAE), **Código Anafilaxia** (criterios diagnósticos NIAID/WAO 2006), **Código PCR** (activación de reanimación) y **Código Dificultad Respiratoria Grave** (trabajo respiratorio severo / falla inminente), cada uno con recomendaciones clínicas específicas
 - **Protocolos de enfermería por nivel de triaje**: acciones, tiempos de reevaluación y signos de alarma
 - **Gestión de pacientes** con antecedentes médicos (alergias, grupo sanguíneo, enfermedades crónicas, medicación habitual, antecedentes quirúrgicos)
 - **Acciones de triage avanzado**: registro de analgésicos, antitérmicos, SRO, O₂, inmovilización, etc. con dosis y hora
@@ -112,6 +113,8 @@ Al activarse Código Sepsis y registrar la clasificación de shock, el sistema c
 | GET | /triaje/{id}/sepsis | Resumen de evaluación de sepsis |
 | PATCH | /triaje/{id}/sepsis/clasificacion | Registrar clasificación de shock |
 | POST/GET/DELETE | /triaje/{id}/acciones/ | Acciones de enfermería |
+| POST | /triaje/{id}/codigos-activacion/{trauma\|convulsiones\|anafilaxia\|pcr\|dificultad-respiratoria} | Evaluar un código de activación |
+| GET | /triaje/{id}/codigos-activacion | Listar códigos de activación evaluados (solo los activos) |
 
 Documentación interactiva completa en `/docs` (Swagger).
 
@@ -125,14 +128,18 @@ Tests unitarios (pytest) para los motores de triaje y sepsis, sin necesidad de b
 docker compose exec backend pytest -v
 ```
 
-Cubren los 5 niveles de triaje, el TEP, los factores de riesgo modificadores, los criterios SIRS (IPSCC), la clasificación de sepsis (sospecha / grave / shock séptico), la clasificación de dolor (NIPS / FLACC / Wong-Baker / numérica) y la recomendación de plan de rehidratación (Plan A/B/C).
+Cubren los 5 niveles de triaje, el TEP, los factores de riesgo modificadores, los criterios SIRS (IPSCC), la clasificación de sepsis (sospecha / grave / shock séptico), la clasificación de dolor (NIPS / FLACC / Wong-Baker / numérica), la recomendación de plan de rehidratación (Plan A/B/C) y los 5 motores de códigos de activación (Trauma, Convulsiones, Anafilaxia, PCR, Dificultad Respiratoria Grave).
 
 ---
 
 ## 🧭 Roadmap — próximos pasos
 
+> Backlog clínico-funcional detallado (basado en SEUP, 4.ª ed. 2024): [`README_FUNCIONES_FALTANTES_TRIAJE_PEDIATRICO.md`](./README_FUNCIONES_FALTANTES_TRIAJE_PEDIATRICO.md)
+
 ### Modelo clínico
 - Flag Fast Track para niveles IV-V
+- Confirmación/modificación profesional del nivel sugerido por el motor
+- Escalada automática del nivel de triaje cuando se activa un código adicional (hoy, la activación se muestra como alerta pero no fuerza el nivel del triaje)
 
 ### Operación hospitalaria
 - Reevaluación de triaje (nueva toma de signos vitales)

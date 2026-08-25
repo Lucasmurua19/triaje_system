@@ -138,6 +138,24 @@ export interface SepsisResumen {
   clasificacion_shock?: ClasificacionShock;
 }
 
+export type TipoCodigoActivacion =
+  | "trauma"
+  | "convulsiones"
+  | "anafilaxia"
+  | "pcr"
+  | "dificultad_respiratoria";
+
+export interface CodigoActivacionResumen {
+  tipo_codigo: TipoCodigoActivacion;
+  nombre: string;
+  activado: boolean;
+  nivel_gravedad?: string;
+  criterios_positivos: string[];
+  recomendaciones: string[];
+  tiempo_activacion?: string;
+  color_alerta: "verde" | "naranja" | "rojo";
+}
+
 export interface TriajeCompletoPayload {
   paciente_id: number;
   motivo_consulta: string;

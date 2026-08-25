@@ -12,6 +12,7 @@ import SepsisAlert from "@/components/SepsisAlert";
 import SepsisCodeModal from "@/components/SepsisCodeModal";
 import ProtocoloSepsis from "@/components/ProtocoloSepsis";
 import AccionesTriaje from "@/components/AccionesTriaje";
+import CodigosActivacion from "@/components/CodigosActivacion";
 import ProtocoloNivel from "@/components/ProtocoloNivel";
 import Sidebar from "@/components/Sidebar";
 
@@ -141,6 +142,9 @@ export default function TriajeDetallePage() {
 
           {/* Alerta Sepsis */}
           {sepsis && <SepsisAlert data={sepsis} />}
+
+          {/* Códigos de activación adicionales (Trauma, Convulsiones, Anafilaxia, PCR, Dif. Respiratoria) */}
+          <CodigosActivacion triajeId={triaje.id} />
 
           {/* Protocolo clínico — visible solo cuando sepsis activa y modal confirmado */}
           {sepsisActiva && modalConfirmado && (

@@ -70,6 +70,26 @@ class Triaje(Base):
     evaluacion_sepsis = relationship("EvaluacionSepsis", back_populates="triaje", uselist=False)
     acciones = relationship("AccionTriaje", back_populates="triaje", order_by="AccionTriaje.hora_administracion")
 
+    # Codigos de activacion adicionales (evaluacion opcional, segun aplique clinicamente).
+    # Relacion de lista, no 1:1: el mismo codigo puede reevaluarse mas de una vez si el
+    # cuadro clinico evoluciona (ej. trauma que se agrava). Se conserva el historial completo
+    # y el router toma la evaluacion mas reciente de cada tipo para mostrar.
+    evaluaciones_trauma = relationship(
+        "EvaluacionTrauma", back_populates="triaje", order_by="EvaluacionTrauma.created_at"
+    )
+    evaluaciones_convulsiones = relationship(
+        "EvaluacionConvulsiones", back_populates="triaje", order_by="EvaluacionConvulsiones.created_at"
+    )
+    evaluaciones_anafilaxia = relationship(
+        "EvaluacionAnafilaxia", back_populates="triaje", order_by="EvaluacionAnafilaxia.created_at"
+    )
+    evaluaciones_pcr = relationship(
+        "EvaluacionPCR", back_populates="triaje", order_by="EvaluacionPCR.created_at"
+    )
+    evaluaciones_dificultad_respiratoria = relationship(
+        "EvaluacionDificultadRespiratoria", back_populates="triaje", order_by="EvaluacionDificultadRespiratoria.created_at"
+    )
+
 
 class SignosVitales(Base):
     __tablename__ = "signos_vitales"

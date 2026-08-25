@@ -8,12 +8,28 @@ from app.models.user import RolUsuario
 from app.models.paciente import Paciente
 from app.models.triaje import Triaje, SignosVitales, EvaluacionTEP, FactoresRiesgo, AccionTriaje
 from app.models.sepsis import EvaluacionSepsis, NivelSepsis
+from app.models.codigos_activacion import (
+    EvaluacionTrauma,
+    EvaluacionConvulsiones,
+    EvaluacionAnafilaxia,
+    EvaluacionPCR,
+    EvaluacionDificultadRespiratoria,
+)
 from app.models.user import User
 from app.schemas.triaje import TriajeCompleto, TriajeOut, AccionTriajeCreate, AccionTriajeOut
 from app.schemas.sepsis import SepsisResumen, ClasificacionUpdate
 from app.models.sepsis import ClasificacionShock
+from app.schemas.codigos_activacion import (
+    TraumaCriteriosIn,
+    ConvulsionesCriteriosIn,
+    AnafilaxiaCriteriosIn,
+    PCRCriteriosIn,
+    DificultadRespiratoriaCriteriosIn,
+    CodigoActivacionResumen,
+)
 from app.services.triaje_service import clasificar_triaje, escalar_por_shock_septico
 from app.services.sepsis_service import evaluar_sirs, calcular_edad_meses
+from app.services import codigos_activacion_service as cod_service
 from datetime import datetime, timezone
 import json
 
@@ -220,3 +236,186 @@ def eliminar_accion(
         raise HTTPException(status_code=404, detail="Acción no encontrada")
     db.delete(accion)
     db.commit()
+
+
+# ---------------------------------------------------------------------------
+# Codigos de activacion adicionales: Trauma, Convulsiones, Anafilaxia, PCR,
+# Dificultad Respiratoria Grave. Se evaluan bajo demanda (no en todo triaje,
+# a diferencia de Sepsis) cuando el cuadro clinico lo amerita.
+# ---------------------------------------------------------------------------
+
+_NOMBRES_CODIGO = {
+    "trauma": "Código Trauma",
+    "convulsiones": "Código Convulsiones",
+    "anafilaxia": "Código Anafilaxia",
+    "pcr": "Código PCR",
+    "dificultad_respiratoria": "Código Dificultad Respiratoria Grave",
+}
+
+_CRITERIOS_POR_TIPO = {
+    "trauma": cod_service.CRITERIOS_TRAUMA,
+    "convulsiones": cod_service.CRITERIOS_CONVULSIONES,
+    "anafilaxia": cod_service.CRITERIOS_ANAFILAXIA,
+    "pcr": cod_service.CRITERIOS_PCR,
+    "dificultad_respiratoria": cod_service.CRITERIOS_DIFICULTAD_RESPIRATORIA,
+}
+
+
+def _color_alerta_codigo(activado: bool, nivel_gravedad: str | None) -> str:
+    if not activado:
+        return "verde"
+    return "naranja" if nivel_gravedad == "grave" else "rojo"
+
+
+def _registrar_codigo_activacion(
+    db: Session,
+    triaje_id: int,
+    model_cls,
+    criterios_in,
+    tipo_codigo: str,
+    resultado: dict,
+) -> CodigoActivacionResumen:
+    triaje = db.query(Triaje).filter(Triaje.id == triaje_id).first()
+    if not triaje:
+        raise HTTPException(status_code=404, detail="Triaje no encontrado")
+
+    registro = model_cls(triaje_id=triaje_id, **criterios_in.model_dump())
+    registro.activado = resultado["activado"]
+    registro.recomendaciones = json.dumps(resultado["recomendaciones"], ensure_ascii=False)
+    registro.tiempo_activacion = datetime.now(timezone.utc) if resultado["activado"] else None
+    if hasattr(registro, "nivel_gravedad"):
+        registro.nivel_gravedad = resultado.get("nivel_gravedad")
+
+    db.add(registro)
+    db.commit()
+
+    return CodigoActivacionResumen(
+        tipo_codigo=tipo_codigo,
+        nombre=_NOMBRES_CODIGO[tipo_codigo],
+        activado=resultado["activado"],
+        nivel_gravedad=resultado.get("nivel_gravedad"),
+        criterios_positivos=resultado["criterios_positivos"],
+        recomendaciones=resultado["recomendaciones"],
+        tiempo_activacion=registro.tiempo_activacion,
+        color_alerta=_color_alerta_codigo(resultado["activado"], resultado.get("nivel_gravedad")),
+    )
+
+
+@router.post(
+    "/{triaje_id}/codigos-activacion/trauma",
+    response_model=CodigoActivacionResumen,
+    status_code=status.HTTP_201_CREATED,
+)
+def evaluar_codigo_trauma(
+    triaje_id: int,
+    body: TraumaCriteriosIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RolUsuario.medico, RolUsuario.enfermera, RolUsuario.admin)),
+):
+    resultado = cod_service.evaluar_trauma(body)
+    return _registrar_codigo_activacion(db, triaje_id, EvaluacionTrauma, body, "trauma", resultado)
+
+
+@router.post(
+    "/{triaje_id}/codigos-activacion/convulsiones",
+    response_model=CodigoActivacionResumen,
+    status_code=status.HTTP_201_CREATED,
+)
+def evaluar_codigo_convulsiones(
+    triaje_id: int,
+    body: ConvulsionesCriteriosIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RolUsuario.medico, RolUsuario.enfermera, RolUsuario.admin)),
+):
+    resultado = cod_service.evaluar_convulsiones(body)
+    return _registrar_codigo_activacion(db, triaje_id, EvaluacionConvulsiones, body, "convulsiones", resultado)
+
+
+@router.post(
+    "/{triaje_id}/codigos-activacion/anafilaxia",
+    response_model=CodigoActivacionResumen,
+    status_code=status.HTTP_201_CREATED,
+)
+def evaluar_codigo_anafilaxia(
+    triaje_id: int,
+    body: AnafilaxiaCriteriosIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RolUsuario.medico, RolUsuario.enfermera, RolUsuario.admin)),
+):
+    resultado = cod_service.evaluar_anafilaxia(body)
+    return _registrar_codigo_activacion(db, triaje_id, EvaluacionAnafilaxia, body, "anafilaxia", resultado)
+
+
+@router.post(
+    "/{triaje_id}/codigos-activacion/pcr",
+    response_model=CodigoActivacionResumen,
+    status_code=status.HTTP_201_CREATED,
+)
+def evaluar_codigo_pcr(
+    triaje_id: int,
+    body: PCRCriteriosIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RolUsuario.medico, RolUsuario.enfermera, RolUsuario.admin)),
+):
+    resultado = cod_service.evaluar_pcr(body)
+    return _registrar_codigo_activacion(db, triaje_id, EvaluacionPCR, body, "pcr", resultado)
+
+
+@router.post(
+    "/{triaje_id}/codigos-activacion/dificultad-respiratoria",
+    response_model=CodigoActivacionResumen,
+    status_code=status.HTTP_201_CREATED,
+)
+def evaluar_codigo_dificultad_respiratoria(
+    triaje_id: int,
+    body: DificultadRespiratoriaCriteriosIn,
+    db: Session = Depends(get_db),
+    _: User = Depends(require_roles(RolUsuario.medico, RolUsuario.enfermera, RolUsuario.admin)),
+):
+    resultado = cod_service.evaluar_dificultad_respiratoria(body)
+    return _registrar_codigo_activacion(
+        db, triaje_id, EvaluacionDificultadRespiratoria, body, "dificultad_respiratoria", resultado
+    )
+
+
+@router.get("/{triaje_id}/codigos-activacion", response_model=List[CodigoActivacionResumen])
+def listar_codigos_activacion(
+    triaje_id: int,
+    db: Session = Depends(get_db),
+    _: User = Depends(get_current_user),
+):
+    triaje = db.query(Triaje).filter(Triaje.id == triaje_id).first()
+    if not triaje:
+        raise HTTPException(status_code=404, detail="Triaje no encontrado")
+
+    # Se toma la evaluacion mas reciente de cada tipo (puede haber sido reevaluado).
+    registros = [
+        ("trauma", triaje.evaluaciones_trauma),
+        ("convulsiones", triaje.evaluaciones_convulsiones),
+        ("anafilaxia", triaje.evaluaciones_anafilaxia),
+        ("pcr", triaje.evaluaciones_pcr),
+        ("dificultad_respiratoria", triaje.evaluaciones_dificultad_respiratoria),
+    ]
+
+    resultados = []
+    for tipo, lista in registros:
+        registro = lista[-1] if lista else None
+        if registro is None:
+            continue
+        nivel_gravedad = getattr(registro, "nivel_gravedad", None)
+        criterios_positivos = [
+            label for key, label in _CRITERIOS_POR_TIPO[tipo].items() if getattr(registro, key)
+        ]
+        resultados.append(
+            CodigoActivacionResumen(
+                tipo_codigo=tipo,
+                nombre=_NOMBRES_CODIGO[tipo],
+                activado=registro.activado,
+                nivel_gravedad=nivel_gravedad,
+                criterios_positivos=criterios_positivos,
+                recomendaciones=json.loads(registro.recomendaciones) if registro.recomendaciones else [],
+                tiempo_activacion=registro.tiempo_activacion,
+                color_alerta=_color_alerta_codigo(registro.activado, nivel_gravedad),
+            )
+        )
+    return resultados
