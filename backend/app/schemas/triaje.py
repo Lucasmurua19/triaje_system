@@ -1,9 +1,9 @@
 from pydantic import BaseModel, Field, computed_field
 from datetime import datetime
 from typing import List, Optional
-from app.models.triaje import NivelTriaje, NivelConciencia, EscalaDolor, TipoAccion
+from app.models.triaje import NivelTriaje, NivelConciencia, EscalaDolor, EstadoHidratacion, TipoAccion
 from app.schemas.sepsis import SepsisBasico
-from app.services.triaje_service import clasificar_dolor
+from app.services.triaje_service import clasificar_dolor, recomendar_hidratacion
 
 
 class SignosVitalesCreate(BaseModel):
@@ -19,6 +19,7 @@ class SignosVitalesCreate(BaseModel):
     llene_capilar_segundos: Optional[float] = None
     escala_dolor: Optional[EscalaDolor] = None
     puntaje_dolor: Optional[int] = Field(None, ge=0, le=10)
+    estado_hidratacion: Optional[EstadoHidratacion] = None
 
 
 class SignosVitalesOut(SignosVitalesCreate):
@@ -29,6 +30,11 @@ class SignosVitalesOut(SignosVitalesCreate):
     @property
     def clasificacion_dolor(self) -> Optional[str]:
         return clasificar_dolor(self.escala_dolor, self.puntaje_dolor)
+
+    @computed_field
+    @property
+    def recomendacion_hidratacion(self) -> Optional[str]:
+        return recomendar_hidratacion(self.estado_hidratacion)
 
     class Config:
         from_attributes = True
@@ -118,5 +124,18 @@ class TriajeOut(BaseModel):
     evaluacion_sepsis: Optional[SepsisBasico] = None
     acciones: List[AccionTriajeOut] = []
 
+    # Confirmacion profesional del nivel
+    nivel_sugerido: Optional[NivelTriaje] = None
+    nivel_confirmado_por_id: Optional[int] = None
+    nivel_confirmado_por: Optional[str] = None
+    nivel_confirmado_en: Optional[datetime] = None
+    motivo_modificacion_nivel: Optional[str] = None
+    factores_determinantes: List[str] = []
+
     class Config:
         from_attributes = True
+
+
+class ConfirmarNivelIn(BaseModel):
+    nivel_confirmado: NivelTriaje
+    motivo_modificacion: Optional[str] = None

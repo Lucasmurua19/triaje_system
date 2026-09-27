@@ -3,21 +3,13 @@ import { useEffect } from "react";
 import type { SepsisResumen } from "@/types";
 
 const CONFIG = {
-  sin_sepsis: {
-    bg: "bg-green-50",
-    border: "border-green-300",
-    icon: "✅",
-    title: "Sin criterios de sepsis",
-    titleColor: "text-green-800",
-    badge: "bg-green-100 text-green-800",
-  },
   sospecha: {
-    bg: "bg-yellow-50",
-    border: "border-yellow-400",
+    bg: "bg-orange-50",
+    border: "border-orange-400",
     icon: "⚠️",
     title: "SOSPECHA DE SEPSIS",
-    titleColor: "text-yellow-800",
-    badge: "bg-yellow-100 text-yellow-800",
+    titleColor: "text-orange-800",
+    badge: "bg-orange-100 text-orange-800",
   },
   sepsis_grave: {
     bg: "bg-red-50",
@@ -38,7 +30,6 @@ const CONFIG = {
 };
 
 export default function SepsisAlert({ data }: { data: SepsisResumen }) {
-  const cfg = CONFIG[data.nivel];
   const isCritical = data.nivel === "sepsis_grave" || data.nivel === "shock_septico";
 
   // Alerta sonora al montar si es critico
@@ -58,6 +49,9 @@ export default function SepsisAlert({ data }: { data: SepsisResumen }) {
       });
     }
   }, [isCritical]);
+
+  if (data.nivel === "sin_sepsis") return null;
+  const cfg = CONFIG[data.nivel];
 
   return (
     <div

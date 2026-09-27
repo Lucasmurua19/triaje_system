@@ -7,10 +7,13 @@ import type { Triaje, SepsisResumen, Paciente, ClasificacionShock } from "@/type
 import NivelBadge from "@/components/NivelBadge";
 import DolorBadge from "@/components/DolorBadge";
 import { ESCALA_DOLOR_LABELS, PUNTAJE_MAX_POR_ESCALA } from "@/lib/dolor";
+import HidratacionBadge from "@/components/HidratacionBadge";
 import SepsisAlert from "@/components/SepsisAlert";
 import SepsisCodeModal from "@/components/SepsisCodeModal";
 import ProtocoloSepsis from "@/components/ProtocoloSepsis";
 import AccionesTriaje from "@/components/AccionesTriaje";
+import CodigosActivacion from "@/components/CodigosActivacion";
+import ConfirmarNivel from "@/components/ConfirmarNivel";
 import ProtocoloNivel from "@/components/ProtocoloNivel";
 import Sidebar from "@/components/Sidebar";
 
@@ -138,8 +141,14 @@ export default function TriajeDetallePage() {
             )}
           </div>
 
+          {/* Confirmación profesional del nivel — antes que cualquier otra alerta */}
+          <ConfirmarNivel triaje={triaje} onConfirmado={setTriaje} />
+
           {/* Alerta Sepsis */}
           {sepsis && <SepsisAlert data={sepsis} />}
+
+          {/* Códigos de activación adicionales (Trauma, Convulsiones, Anafilaxia, PCR, Dif. Respiratoria) */}
+          <CodigosActivacion triajeId={triaje.id} />
 
           {/* Protocolo clínico — visible solo cuando sepsis activa y modal confirmado */}
           {sepsisActiva && modalConfirmado && (
@@ -196,6 +205,17 @@ export default function TriajeDetallePage() {
                         </span>
                         <DolorBadge clasificacion={sv.clasificacion_dolor} />
                       </div>
+                    </div>
+                  )}
+                  {sv.estado_hidratacion && (
+                    <div className="py-2 border-b border-gray-50 last:border-0">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-500">Hidratación</span>
+                        <HidratacionBadge estado={sv.estado_hidratacion} />
+                      </div>
+                      {sv.recomendacion_hidratacion && (
+                        <p className="text-xs text-gray-500 mt-1">{sv.recomendacion_hidratacion}</p>
+                      )}
                     </div>
                   )}
                 </>

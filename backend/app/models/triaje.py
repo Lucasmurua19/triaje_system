@@ -33,6 +33,13 @@ class EscalaDolor(str, enum.Enum):
     numerica = "numerica"          # Escala numerica/EVA (0-10) - >7a, autoreporte
 
 
+class EstadoHidratacion(str, enum.Enum):
+    normohidratado = "normohidratado"
+    deshidratacion_leve = "deshidratacion_leve"
+    deshidratacion_moderada = "deshidratacion_moderada"
+    deshidratacion_severa = "deshidratacion_severa"
+
+
 class TipoAccion(str, enum.Enum):
     analgesico = "analgesico"
     antipiretico = "antipiretico"
@@ -55,13 +62,43 @@ class Triaje(Base):
     fecha = Column(DateTime(timezone=True), server_default=func.now())
     completado = Column(Boolean, default=False)
 
+    # Confirmacion profesional del nivel: el motor solo "sugiere" un nivel (nivel_sugerido,
+    # inmutable). `nivel` es el nivel vigente/efectivo — arranca igual al sugerido y queda
+    # pendiente de confirmacion hasta que un profesional lo confirma o lo modifica con
+    # justificacion. El sistema nunca bloquea el nivel que el profesional elija.
+    nivel_sugerido = Column(SAEnum(NivelTriaje), nullable=True)
+    nivel_confirmado_por_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    nivel_confirmado_en = Column(DateTime(timezone=True), nullable=True)
+    motivo_modificacion_nivel = Column(Text, nullable=True)
+
     paciente = relationship("Paciente", back_populates="triajes")
-    usuario = relationship("User")
+    usuario = relationship("User", foreign_keys=[usuario_id])
+    nivel_confirmado_por = relationship("User", foreign_keys=[nivel_confirmado_por_id])
     signos_vitales = relationship("SignosVitales", back_populates="triaje", uselist=False)
     evaluacion_tep = relationship("EvaluacionTEP", back_populates="triaje", uselist=False)
     factores_riesgo = relationship("FactoresRiesgo", back_populates="triaje", uselist=False)
     evaluacion_sepsis = relationship("EvaluacionSepsis", back_populates="triaje", uselist=False)
     acciones = relationship("AccionTriaje", back_populates="triaje", order_by="AccionTriaje.hora_administracion")
+
+    # Codigos de activacion adicionales (evaluacion opcional, segun aplique clinicamente).
+    # Relacion de lista, no 1:1: el mismo codigo puede reevaluarse mas de una vez si el
+    # cuadro clinico evoluciona (ej. trauma que se agrava). Se conserva el historial completo
+    # y el router toma la evaluacion mas reciente de cada tipo para mostrar.
+    evaluaciones_trauma = relationship(
+        "EvaluacionTrauma", back_populates="triaje", order_by="EvaluacionTrauma.created_at"
+    )
+    evaluaciones_convulsiones = relationship(
+        "EvaluacionConvulsiones", back_populates="triaje", order_by="EvaluacionConvulsiones.created_at"
+    )
+    evaluaciones_anafilaxia = relationship(
+        "EvaluacionAnafilaxia", back_populates="triaje", order_by="EvaluacionAnafilaxia.created_at"
+    )
+    evaluaciones_pcr = relationship(
+        "EvaluacionPCR", back_populates="triaje", order_by="EvaluacionPCR.created_at"
+    )
+    evaluaciones_dificultad_respiratoria = relationship(
+        "EvaluacionDificultadRespiratoria", back_populates="triaje", order_by="EvaluacionDificultadRespiratoria.created_at"
+    )
 
 
 class SignosVitales(Base):
@@ -82,6 +119,7 @@ class SignosVitales(Base):
     llene_capilar_segundos = Column(Float, nullable=True)
     escala_dolor = Column(SAEnum(EscalaDolor), nullable=True)
     puntaje_dolor = Column(Integer, nullable=True)             # 0-10 (NIPS: 0-7)
+    estado_hidratacion = Column(SAEnum(EstadoHidratacion), nullable=True)
 
     triaje = relationship("Triaje", back_populates="signos_vitales")
 

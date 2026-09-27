@@ -8,6 +8,7 @@ import {
   clasificarDolor,
   escalaDolorPorEdad,
 } from "@/lib/dolor";
+import { ESTADO_HIDRATACION_LABELS, recomendarHidratacion } from "@/lib/hidratacion";
 
 interface Props {
   onNext: (data: SignosVitales) => void;
@@ -28,6 +29,7 @@ type FormData = {
   llene_capilar_segundos: string;
   escala_dolor: string;
   puntaje_dolor: string;
+  estado_hidratacion: string;
 };
 
 const num = (v: string) => (v.trim() === "" ? undefined : Number(v));
@@ -44,6 +46,9 @@ export default function StepSignosVitales({ onNext, onBack, edadMeses }: Props) 
   const clasificacionDolor = clasificarDolor(escalaDolor, puntajeDolor);
   const puntajeMax = escalaDolor ? PUNTAJE_MAX_POR_ESCALA[escalaDolor] : 10;
 
+  const estadoHidratacion = watch("estado_hidratacion") as SignosVitales["estado_hidratacion"];
+  const recomendacionHidratacion = recomendarHidratacion(estadoHidratacion);
+
   function onSubmit(data: FormData) {
     onNext({
       frecuencia_cardiaca: num(data.frecuencia_cardiaca),
@@ -58,6 +63,7 @@ export default function StepSignosVitales({ onNext, onBack, edadMeses }: Props) 
       llene_capilar_segundos: num(data.llene_capilar_segundos),
       escala_dolor: data.puntaje_dolor.trim() === "" ? undefined : (data.escala_dolor as SignosVitales["escala_dolor"]),
       puntaje_dolor: num(data.puntaje_dolor),
+      estado_hidratacion: data.estado_hidratacion === "" ? undefined : (data.estado_hidratacion as SignosVitales["estado_hidratacion"]),
     });
   }
 
@@ -169,6 +175,24 @@ export default function StepSignosVitales({ onNext, onBack, edadMeses }: Props) 
           <p className="text-sm text-gray-600 mt-2">
             Clasificación: <span className="font-semibold">{CLASIFICACION_DOLOR_LABELS[clasificacionDolor]}</span>
           </p>
+        )}
+      </div>
+
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-2">Evaluación de hidratación</h3>
+        <p className="text-sm text-gray-500 mb-2">
+          Completar en pacientes con vómitos o diarrea.
+        </p>
+        <select className="input" {...register("estado_hidratacion")}>
+          <option value="">Sin evaluar</option>
+          {Object.entries(ESTADO_HIDRATACION_LABELS).map(([valor, label]) => (
+            <option key={valor} value={valor}>
+              {label}
+            </option>
+          ))}
+        </select>
+        {recomendacionHidratacion && (
+          <p className="text-sm text-gray-600 mt-2">{recomendacionHidratacion}</p>
         )}
       </div>
 
