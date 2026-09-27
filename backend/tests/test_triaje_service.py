@@ -8,6 +8,7 @@ from app.services.triaje_service import (
     clasificar_dolor,
     clasificar_triaje,
     escalar_por_shock_septico,
+    explicar_nivel,
     recomendar_hidratacion,
 )
 
@@ -276,3 +277,49 @@ class TestRecomendarHidratacion:
 
     def test_deshidratacion_severa_plan_c(self):
         assert recomendar_hidratacion(EstadoHidratacion.deshidratacion_severa).startswith("Plan C:")
+
+
+# ---------------------------------------------------------------------------
+# explicar_nivel: soporte para la confirmacion profesional del nivel
+# ---------------------------------------------------------------------------
+
+class TestExplicarNivel:
+    def test_paciente_sano_sin_razones(self, hoy_fijo):
+        razones = explicar_nivel(NACIMIENTO_ESCOLAR, make_sv(), make_tep(), make_fr())
+        assert razones == []
+
+    def test_fiebre_alta_aparece_como_razon(self, hoy_fijo):
+        razones = explicar_nivel(NACIMIENTO_ESCOLAR, make_sv(temperatura=39.0), make_tep(), make_fr())
+        assert any("Fiebre 39.0" in r for r in razones)
+
+    def test_tep_un_lado_alterado_identifica_el_lado(self, hoy_fijo):
+        razones = explicar_nivel(
+            NACIMIENTO_ESCOLAR, make_sv(), make_tep(respiracion_normal=False), make_fr()
+        )
+        assert any("respiración" in r for r in razones)
+
+    def test_tep_tres_lados_alterados_marca_critico(self, hoy_fijo):
+        razones = explicar_nivel(
+            NACIMIENTO_ESCOLAR, make_sv(),
+            make_tep(apariencia_normal=False, respiracion_normal=False, circulacion_normal=False),
+            make_fr(),
+        )
+        assert any("3 lados alterados" in r for r in razones)
+
+    def test_factores_de_riesgo_se_listan(self, hoy_fijo):
+        razones = explicar_nivel(
+            NACIMIENTO_ESCOLAR, make_sv(), make_tep(), make_fr(edad_menor_3_meses=True, dolor_severo=True)
+        )
+        assert "Edad < 3 meses" in razones
+        assert "Dolor severo" in razones
+
+    def test_multiples_hallazgos_se_acumulan_no_se_cortan_en_el_primero(self, hoy_fijo):
+        """A diferencia de clasificar_triaje() (que corta en el primer criterio que matchea
+        el nivel), explicar_nivel debe devolver TODOS los hallazgos anormales."""
+        razones = explicar_nivel(
+            NACIMIENTO_ESCOLAR,
+            make_sv(frecuencia_cardiaca=200, saturacion_o2=80, temperatura=41.0),
+            make_tep(),
+            make_fr(),
+        )
+        assert len(razones) >= 3

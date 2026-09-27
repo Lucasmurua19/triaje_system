@@ -62,8 +62,18 @@ class Triaje(Base):
     fecha = Column(DateTime(timezone=True), server_default=func.now())
     completado = Column(Boolean, default=False)
 
+    # Confirmacion profesional del nivel: el motor solo "sugiere" un nivel (nivel_sugerido,
+    # inmutable). `nivel` es el nivel vigente/efectivo — arranca igual al sugerido y queda
+    # pendiente de confirmacion hasta que un profesional lo confirma o lo modifica con
+    # justificacion. El sistema nunca bloquea el nivel que el profesional elija.
+    nivel_sugerido = Column(SAEnum(NivelTriaje), nullable=True)
+    nivel_confirmado_por_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    nivel_confirmado_en = Column(DateTime(timezone=True), nullable=True)
+    motivo_modificacion_nivel = Column(Text, nullable=True)
+
     paciente = relationship("Paciente", back_populates="triajes")
-    usuario = relationship("User")
+    usuario = relationship("User", foreign_keys=[usuario_id])
+    nivel_confirmado_por = relationship("User", foreign_keys=[nivel_confirmado_por_id])
     signos_vitales = relationship("SignosVitales", back_populates="triaje", uselist=False)
     evaluacion_tep = relationship("EvaluacionTEP", back_populates="triaje", uselist=False)
     factores_riesgo = relationship("FactoresRiesgo", back_populates="triaje", uselist=False)

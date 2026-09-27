@@ -126,6 +126,14 @@ export interface Triaje {
   factores_riesgo?: FactoresRiesgo & { id: number; triaje_id: number };
   evaluacion_sepsis?: SepsisBasico;
   acciones: AccionTriaje[];
+
+  // Confirmación profesional del nivel
+  nivel_sugerido?: NivelTriaje;
+  nivel_confirmado_por_id?: number;
+  nivel_confirmado_por?: string;
+  nivel_confirmado_en?: string;
+  motivo_modificacion_nivel?: string;
+  factores_determinantes: string[];
 }
 
 export interface SepsisResumen {

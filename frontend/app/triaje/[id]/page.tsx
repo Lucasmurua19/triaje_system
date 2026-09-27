@@ -13,6 +13,7 @@ import SepsisCodeModal from "@/components/SepsisCodeModal";
 import ProtocoloSepsis from "@/components/ProtocoloSepsis";
 import AccionesTriaje from "@/components/AccionesTriaje";
 import CodigosActivacion from "@/components/CodigosActivacion";
+import ConfirmarNivel from "@/components/ConfirmarNivel";
 import ProtocoloNivel from "@/components/ProtocoloNivel";
 import Sidebar from "@/components/Sidebar";
 
@@ -139,6 +140,9 @@ export default function TriajeDetallePage() {
               </div>
             )}
           </div>
+
+          {/* Confirmación profesional del nivel — antes que cualquier otra alerta */}
+          <ConfirmarNivel triaje={triaje} onConfirmado={setTriaje} />
 
           {/* Alerta Sepsis */}
           {sepsis && <SepsisAlert data={sepsis} />}

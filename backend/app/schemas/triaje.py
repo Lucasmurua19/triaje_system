@@ -124,5 +124,18 @@ class TriajeOut(BaseModel):
     evaluacion_sepsis: Optional[SepsisBasico] = None
     acciones: List[AccionTriajeOut] = []
 
+    # Confirmacion profesional del nivel
+    nivel_sugerido: Optional[NivelTriaje] = None
+    nivel_confirmado_por_id: Optional[int] = None
+    nivel_confirmado_por: Optional[str] = None
+    nivel_confirmado_en: Optional[datetime] = None
+    motivo_modificacion_nivel: Optional[str] = None
+    factores_determinantes: List[str] = []
+
     class Config:
         from_attributes = True
+
+
+class ConfirmarNivelIn(BaseModel):
+    nivel_confirmado: NivelTriaje
+    motivo_modificacion: Optional[str] = None

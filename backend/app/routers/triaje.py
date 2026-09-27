@@ -16,7 +16,7 @@ from app.models.codigos_activacion import (
     EvaluacionDificultadRespiratoria,
 )
 from app.models.user import User
-from app.schemas.triaje import TriajeCompleto, TriajeOut, AccionTriajeCreate, AccionTriajeOut
+from app.schemas.triaje import TriajeCompleto, TriajeOut, AccionTriajeCreate, AccionTriajeOut, ConfirmarNivelIn
 from app.schemas.sepsis import SepsisResumen, ClasificacionUpdate
 from app.models.sepsis import ClasificacionShock
 from app.schemas.codigos_activacion import (
@@ -27,13 +27,29 @@ from app.schemas.codigos_activacion import (
     DificultadRespiratoriaCriteriosIn,
     CodigoActivacionResumen,
 )
-from app.services.triaje_service import clasificar_triaje, escalar_por_shock_septico
+from app.services.triaje_service import clasificar_triaje, escalar_por_shock_septico, explicar_nivel, TIEMPO_ESPERA
 from app.services.sepsis_service import evaluar_sirs, calcular_edad_meses
 from app.services import codigos_activacion_service as cod_service
 from datetime import datetime, timezone
 import json
 
 router = APIRouter(prefix="/triaje", tags=["Triaje"])
+
+
+def _build_triaje_out(triaje: Triaje) -> TriajeOut:
+    """Arma TriajeOut agregando los campos que no son columnas directas del ORM:
+    los factores determinantes del nivel sugerido y el nombre de quien lo confirmo."""
+    salida = TriajeOut.model_validate(triaje)
+
+    if triaje.paciente and triaje.signos_vitales and triaje.evaluacion_tep and triaje.factores_riesgo:
+        salida.factores_determinantes = explicar_nivel(
+            triaje.paciente.fecha_nacimiento, triaje.signos_vitales, triaje.evaluacion_tep, triaje.factores_riesgo
+        )
+
+    if triaje.nivel_confirmado_por:
+        salida.nivel_confirmado_por = triaje.nivel_confirmado_por.nombre
+
+    return salida
 
 
 @router.post("/", response_model=TriajeOut, status_code=status.HTTP_201_CREATED)
@@ -78,6 +94,12 @@ def crear_triaje_completo(
 
     # Shock septico es una emergencia inmediata, sin importar el nivel base
     nivel, minutos = escalar_por_shock_septico(nivel, minutos, resultado_sirs["nivel"])
+
+    # El nivel sugerido por el motor queda pendiente de confirmacion profesional:
+    # `nivel` arranca igual a `nivel_sugerido` para que el triaje sea operable de
+    # inmediato, pero nivel_confirmado_por_id queda null hasta que un profesional
+    # lo confirme o lo modifique via PATCH /triaje/{id}/confirmar-nivel.
+    triaje.nivel_sugerido = nivel
     triaje.nivel = nivel
     triaje.tiempo_espera_minutos = minutos
     triaje.completado = True
@@ -99,7 +121,7 @@ def crear_triaje_completo(
     db.add(sepsis)
     db.commit()
     db.refresh(triaje)
-    return triaje
+    return _build_triaje_out(triaje)
 
 
 @router.get("/", response_model=List[TriajeOut])
@@ -127,7 +149,40 @@ def obtener_triaje(
     triaje = db.query(Triaje).filter(Triaje.id == triaje_id).first()
     if not triaje:
         raise HTTPException(status_code=404, detail="Triaje no encontrado")
-    return triaje
+    return _build_triaje_out(triaje)
+
+
+@router.patch("/{triaje_id}/confirmar-nivel", response_model=TriajeOut)
+def confirmar_nivel(
+    triaje_id: int,
+    body: ConfirmarNivelIn,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_roles(RolUsuario.medico, RolUsuario.enfermera, RolUsuario.admin)),
+):
+    """Confirmacion profesional del nivel: el nivel sugerido por el motor nunca queda
+    como decision final sin que un profesional lo confirme (o lo cambie, con justificacion).
+    El sistema no bloquea el nivel que el profesional elija — solo exige que, si difiere
+    del sugerido, quede registrado el motivo."""
+    triaje = db.query(Triaje).filter(Triaje.id == triaje_id).first()
+    if not triaje:
+        raise HTTPException(status_code=404, detail="Triaje no encontrado")
+
+    if triaje.nivel_sugerido is not None and body.nivel_confirmado != triaje.nivel_sugerido:
+        if not body.motivo_modificacion or not body.motivo_modificacion.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Debe justificar el motivo cuando el nivel confirmado difiere del nivel sugerido",
+            )
+
+    triaje.nivel = body.nivel_confirmado
+    triaje.tiempo_espera_minutos = TIEMPO_ESPERA[body.nivel_confirmado]
+    triaje.motivo_modificacion_nivel = body.motivo_modificacion.strip() if body.motivo_modificacion else None
+    triaje.nivel_confirmado_por_id = current_user.id
+    triaje.nivel_confirmado_en = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(triaje)
+    return _build_triaje_out(triaje)
 
 
 @router.get("/{triaje_id}/sepsis", response_model=SepsisResumen)
